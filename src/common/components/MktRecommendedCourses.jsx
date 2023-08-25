@@ -12,7 +12,6 @@ import useStyle from '../hooks/useStyle';
 import modifyEnv from '../../../modifyEnv';
 
 const coursesLimit = 2;
-const WHITE_LABEL_ACADEMY = process.env.WHITE_LABEL_ACADEMY;
 
 function MktRecommendedCourses({ id, technologies, background, title, gridColumn, endpoint, ...rest }) {
   const { lang } = useTranslation('common');
@@ -24,7 +23,7 @@ function MktRecommendedCourses({ id, technologies, background, title, gridColumn
   const [courses, setCourses] = useState([]);
   const { hexColor, fontColor, featuredColor } = useStyle();
 
-  const defaultHostAndEndpoint = `${BREATHECODE_HOST}/v1/marketing/course?academy=${WHITE_LABEL_ACADEMY}`;
+  const defaultHostAndEndpoint = `${BREATHECODE_HOST}/v1/marketing/course?academy=${process.env.WHITE_LABEL_ACADEMY}`;
 
   const headers = {
     'Accept-Language': lang,
