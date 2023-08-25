@@ -5,7 +5,7 @@ import sm from './slicemachine.config.json';
 /**
  * The project's Prismic repository name.
  */
-export const repositoryName = prismic.getRepositoryName(sm.apiEndpoint);
+export const { repositoryName } = sm;
 
 // Update the routes array to match your project's route structure
 /** @type {prismic.ClientConfig['routes']} **/

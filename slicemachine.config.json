@@ -1,6 +1,6 @@
 {
-  "apiEndpoint": "https://4geeks.prismic.io/api/v2",
-  "repositoryName": "4geeks",
+  "apiEndpoint": "https://miamitechworks.cdn.prismic.io/api/v2",
+  "repositoryName": "miamitechworks",
   "adapter": "@slicemachine/adapter-next",
   "libraries": ["./slices"],
   "localSliceSimulatorURL": "http://localhost:3000/slice-simulator"

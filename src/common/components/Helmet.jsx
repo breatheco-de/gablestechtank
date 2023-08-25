@@ -12,7 +12,7 @@ function Helmet({
   const translationsArray = Object.keys(translations);
   const translationsExists = translationsArray.length > 0;
   const maxCharacters = 155;
-  const descriptionCleaned = description.length > maxCharacters
+  const descriptionCleaned = description?.length > maxCharacters
     ? `${description.substring(0, maxCharacters)}...`
     : description;
 
