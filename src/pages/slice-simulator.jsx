@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react/no-unstable-nested-components */
 import { SliceSimulator } from '@prismicio/slice-simulator-react';
 import { SliceZone } from '@prismicio/react';
