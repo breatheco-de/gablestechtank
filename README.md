@@ -13,7 +13,7 @@ nvm use 18
 Install packages:
 
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
 Then, run the development server:
