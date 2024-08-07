@@ -13,21 +13,21 @@ import AvatarUser from '../../js_modules/cohortSidebar/avatarUser';
 import Text from './Text';
 import Icon from './Icon';
 import { isNumber } from '../../utils';
+import useStyle from '../hooks/useStyle';
 
 function ProjectsSection({
-  startsIn, stTranslation, syllabusContent, courseProgress,
+  startsIn, syllabusContent, courseProgress,
   usersConnected, assistants, teacher, isAvailableAsSaas,
   subscriptionStatus,
 }) {
-  const { t, lang } = useTranslation('program-card');
+  const { t } = useTranslation('program-card');
   const textColor = useColorModeValue('black', 'white');
   const bgColor = useColorModeValue('featuredLight', 'featuredDark');
   const now = new Date();
+  const { hexColor } = useStyle();
   const isFreeTrial = subscriptionStatus === 'FREE_TRIAL';
   const statusActive = subscriptionStatus === 'ACTIVE' || subscriptionStatus === 'FULLY_PAID';
   // const statusActive = subscriptionStatus === 'ACTIVE' || isFreeTrial || subscriptionStatus === 'FULLY_PAID';
-
-  const programCardTR = stTranslation?.[lang]?.['program-card'];
 
   const statusTimeString = (start) => {
     if (start < now) return 'started';
@@ -40,6 +40,7 @@ function ProjectsSection({
     if (syllabusContent?.totalLessons) {
       contentArray.push({
         name: 'lessons',
+        icon: 'book',
         total: syllabusContent.totalLessons,
         completed: syllabusContent.completedLessons,
       });
@@ -47,6 +48,7 @@ function ProjectsSection({
     if (syllabusContent?.totalProjects) {
       contentArray.push({
         name: 'projects',
+        icon: 'laptop',
         total: syllabusContent.totalProjects,
         completed: syllabusContent.completedProjects,
       });
@@ -54,6 +56,7 @@ function ProjectsSection({
     if (syllabusContent?.totalExercises) {
       contentArray.push({
         name: 'exercises',
+        icon: 'strength',
         total: syllabusContent.totalExercises,
         completed: syllabusContent.completedExercises,
       });
@@ -61,6 +64,7 @@ function ProjectsSection({
     if (syllabusContent?.totalQuizzes) {
       contentArray.push({
         name: 'quizzes',
+        icon: 'answer',
         total: syllabusContent.totalQuizzes,
         completed: syllabusContent.completedQuizzes,
       });
@@ -85,10 +89,11 @@ function ProjectsSection({
               display="flex"
             >
               <Icon
-                width="14px"
-                height="14px"
-                style={{ marginRight: '7px' }}
-                icon="book"
+                width={elem?.icon === 'laptop' ? '14px' : '14px'}
+                height={elem?.icon === 'laptop' ? '14px' : '14px'}
+                mr="7px"
+                color={hexColor.blueDefault}
+                icon={elem?.icon || 'book'}
               />
               <Box>
                 {((isAvailableAsSaas === false || statusActive || isFreeTrial) && (hasStarted || courseProgress > 0)) && (
@@ -97,7 +102,7 @@ function ProjectsSection({
                     /
                   </>
                 )}
-                {`${elem.total} ${programCardTR?.[elem.name] || t(elem.name)}`}
+                {`${elem.total} ${t(elem.name)}`}
               </Box>
             </Text>
           ))}
@@ -113,7 +118,7 @@ function ProjectsSection({
             marginBottom="5px"
             textAlign="center"
           >
-            {`${countOfMentors} ${programCardTR?.['mentors-available'] || t('mentors-available')}`}
+            {`${countOfMentors} ${t('mentors-available')}`}
           </Text>
 
           <Box display="flex" justifyContent="space-between" mt="10px" gridGap="22px">
@@ -167,7 +172,6 @@ ProjectsSection.propTypes = {
   startsIn: PropTypes.instanceOf(Date),
   syllabusContent: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   courseProgress: PropTypes.number,
-  stTranslation: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   usersConnected: PropTypes.arrayOf(PropTypes.number),
   assistants: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   teacher: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
@@ -176,7 +180,6 @@ ProjectsSection.propTypes = {
 };
 
 ProjectsSection.defaultProps = {
-  stTranslation: null,
   startsIn: null,
   syllabusContent: null,
   courseProgress: null,

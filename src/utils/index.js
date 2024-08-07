@@ -1,17 +1,15 @@
 /* eslint-disable indent */
 import { addDays, format, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { parseQuerys } from './url';
 
 const isWindow = typeof window !== 'undefined';
-const BREATHECODE_HOST = process.env.BREATHECODE_HOST || 'https://breathecode-test.herokuapp.com';
 
 const HAVE_SESSION = isWindow ? localStorage.getItem('accessToken') !== null : false;
 /** @const isDevMode
  * principal use for dibuging for another issues and prevent
  * to create unused console.logs in production
 */
-const isDevMode = isWindow && (process.env.VERCEL_ENV !== 'production' || process.env.NODE_ENV !== 'production');
+const isDevMode = process.env.VERCEL_ENV !== 'production' || process.env.NODE_ENV !== 'production';
 
 const languageLabel = {
   es: 'spanish',
@@ -26,6 +24,7 @@ const assetTypeValues = {
 };
 
 const slugify = (str) => (typeof str === 'string' ? str
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
   .trim()
   .replace(/[^\w\s-]/g, '')
@@ -33,13 +32,17 @@ const slugify = (str) => (typeof str === 'string' ? str
   .replace(/^-+|-+$/g, '')
   : '');
 
-const unSlugify = (str) => (typeof str === 'string' ? str
-  .replace(/-/g, ' ')
-  .replace(
-    /\w\S*/g,
-    (txt) => txt.charAt(0) + txt.substr(1).toLowerCase(),
-  )
-  : '');
+  const unSlugify = (str, capitalize = false) => (typeof str === 'string'
+    ? str
+      .replace(/-/g, ' ')
+      .replace(
+        /\w\S*/g,
+        (txt) => {
+          const firstLetter = capitalize ? txt.charAt(0).toUpperCase() : txt.charAt(0);
+          return firstLetter + txt.substring(1).toLowerCase();
+        },
+      )
+    : '');
 
 const unSlugifyCapitalize = (str) => (typeof str === 'string' ? str
   .replace(/-/g, ' ')
@@ -48,6 +51,17 @@ const unSlugifyCapitalize = (str) => (typeof str === 'string' ? str
   (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase(),
 )
   : '');
+
+function slugToTitle(slug) {
+  if (slug === undefined) return '';
+  return slug.split('-').map(
+    (word, i) => {
+      if (i === 0) return word.charAt(0).toUpperCase() + word.slice(1);
+      return word.charAt(0) + word.slice(1);
+    },
+  ).join(' ').replace(/([A-Z])/g, ' $1')
+  .trim();
+}
 
 const cleanQueryStrings = (url) => url.split('?')[0];
 
@@ -76,6 +90,12 @@ const setStorageItem = (key, value) => {
 const removeStorageItem = (key) => {
   if (isWindow) {
     return localStorage.removeItem(key);
+  }
+  return null;
+};
+const removeSessionStorageItem = (key) => {
+  if (isWindow) {
+    return sessionStorage.removeItem(key);
   }
   return null;
 };
@@ -242,8 +262,9 @@ const sortToNearestTodayDate = (data, minutes = 30) => {
   if (data === undefined || data?.length === 0) return [];
 
   const filteredDates = data.filter((item) => {
+    const endDate = item.ended_at || item.ending_at;
     const startingDate = new Date(item.starting_at);
-    const endingDate = new Date(item.ending_at);
+    const endingDate = new Date(endDate);
     const timeDiff = startingDate - currentDate;
     const minutesDiff = Math.round(timeDiff / (1000 * 60));
 
@@ -312,37 +333,6 @@ function calculateDifferenceDays(date) {
   };
 }
 
-const getAsset = async (type, extraQuerys = {}) => {
-  const qs = parseQuerys(extraQuerys, true);
-  const limit = 100;
-  let offset = 0;
-  let allResults = [];
-
-  let results = await fetch(`${BREATHECODE_HOST}/v1/registry/asset?asset_type=${type}&limit=${limit}&offset=${offset}${qs}`)
-    .then((res) => res.json())
-    .then((data) => data.results)
-    .catch(() => {
-      console.error(`PAGE: Error fetching ${type.toUpperCase()} pages`);
-      return [];
-    });
-
-  while (results.length > 0) {
-    allResults = allResults.concat(results);
-    offset += limit;
-
-    // eslint-disable-next-line no-await-in-loop
-    results = await fetch(`${BREATHECODE_HOST}/v1/registry/asset?asset_type=${type}&limit=${limit}&offset=${offset}${qs}`)
-      .then((res) => res.json())
-      .then((data) => data.results)
-      .catch(() => {
-        console.error(`PAGE: Error fetching ${type.toUpperCase()} pages`);
-        return [];
-      });
-  }
-
-  return allResults;
-};
-
 function adjustNumberBeetwenMinMax({ number = 1, min = 1, max = 10 }) {
   const range = max - min;
   const overflow = (number - max) % range;
@@ -410,6 +400,15 @@ function cleanObject(obj) {
   return cleaned;
 }
 
+function decodeBase64(encoded) {
+  // Decode from base64 and convert to UTF-8 and remove � characters if they exist
+    const decoded = new TextDecoder('utf-8')
+      .decode(Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)))
+      .replace(/�/g, '');
+
+    return decoded;
+}
+
 export {
   isWindow, assetTypeValues, HAVE_SESSION, slugify, unSlugify, unSlugifyCapitalize, location,
   isPlural, getStorageItem, includesToLowerCase, getExtensionName,
@@ -419,5 +418,6 @@ export {
   resizeAllMasonryItems, calcSVGViewBox, number2DIgits, getNextDateInMonths,
   sortToNearestTodayDate, isNumber, isDateMoreThanAnyDaysAgo, getQueryString, isValidDate,
   createArray, url, lengthOfString, syncInterval, getBrowserSize, calculateDifferenceDays, capitalizeFirstLetter,
-  getAsset, adjustNumberBeetwenMinMax, getDiscountedPrice, formatPrice, cleanObject,
+  adjustNumberBeetwenMinMax, getDiscountedPrice, formatPrice, cleanObject, slugToTitle, decodeBase64,
+  removeSessionStorageItem,
 };

@@ -6,7 +6,7 @@ const useStyle = () => {
   const backgroundColor2 = useColorModeValue('white', 'gray.700');
   const backgroundColor3 = useColorModeValue('gray.light2', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const borderColor2 = useColorModeValue('gray.200', 'gray.500');
+  const borderColor2 = useColorModeValue('gray.200', 'featuredDark');
   const borderColorStrong = useColorModeValue('gray.400', 'gray.500');
   const disabledBackgroundColor = useColorModeValue('gray.250', 'gray.600');
   const disabledColor = useColorModeValue('gray.500', 'gray.350');
@@ -19,21 +19,43 @@ const useStyle = () => {
   const lightColor = useColorModeValue('gray.600', 'gray.200');
   const tooltipBackground = useColorModeValue('gray.dark', 'gray.dark');
   const featuredLight = useColorModeValue('gray.light3', 'featuredDark');
+  const colorMode = useColorModeValue('light', 'dark');
+  const reverseColorMode = useColorModeValue('dark', 'light');
+  const complementaryBlue = useColorModeValue('blue.900', 'blue.600');
+
+  const featuredCard = {
+    background: useColorModeValue('white', '#181a1b'),
+    blueDark: useColorModeValue('#01455E', '#27b1e4'),
+    blue: {
+      background: useColorModeValue('blue.default', '#157497'),
+      featured: useColorModeValue('blue.light', '#092835'),
+    },
+    yellow: {
+      background: useColorModeValue('yellow.default', 'rgb(135 97 20)'),
+      featured: useColorModeValue('yellow.light', '#332508'),
+    },
+  };
 
   const hexColor = {
     black: useColorModeValue('#000000', '#ffffff'),
+    disabledColor: useColorModeValue('#A4A4A4', '#CACACA'),
     fontColor3: useColorModeValue('#606060', '#EBEBEB'),
+    borderColor: useColorModeValue('#DADADA', '#4A5568'),
     backgroundColor: useColorModeValue('#ffffff', '#17202A'),
     featuredColor: useColorModeValue('#EEF9FE', '#283340'),
+    featuredColor2: useColorModeValue('#F5F8FF', '#283340'),
     lightColor: useColorModeValue('#F5F5F5', '#4A5568'),
     lightColor2: useColorModeValue('#F5F5F5', '#283340'),
+    lightColor3: useColorModeValue('#F5F5F5', '#17202A'),
     white2: useColorModeValue('#ffffff', '#283340'),
     danger: useColorModeValue('#CD0000', '#e26161'),
     blueDefault: '#0097CD',
     yellowDefault: '#FFB718',
     green: '#38A56A',
     greenLight: '#25BF6C',
+    greenLight2: '#A4FFBD',
     fontColor2: useColorModeValue('#3A3A3A', '#EBEBEB'),
+    successLight: useColorModeValue('#e9ffef', '#A4FFBD'),
   };
   const input = {
     borderColor: useColorModeValue('gray.default', '#CACACA'),
@@ -68,6 +90,10 @@ const useStyle = () => {
     tooltipBackground,
     featuredLight,
     navbarBackground,
+    featuredCard,
+    colorMode,
+    reverseColorMode,
+    complementaryBlue,
   };
 };
 

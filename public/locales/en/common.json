@@ -1,10 +1,39 @@
 {
+  "change-language": "Change language",
+  "connect-with-github": "Connect with Github",
+  "see-financing-options": "See financing options",
+  "your-tutors-in-this-cohort": "Your tutors:",
+  "main-instructor": "Main Instructor",
+  "teacher-assistant": "Teacher Assistant",
+  "rigo": "Rigo",
+  "ai-tutor": "AI Tutor",
+  "word-connector": {
+    "and": "and",
+    "or": "or",
+    "to": "to",
+    "from": "from",
+    "of": "of",
+    "in": "in",
+    "on": "on",
+    "with": "with",
+    "for": "for",
+    "day": "day",
+    "week": "week",
+    "month": "month",
+    "year": "year",
+    "days": "days",
+    "weeks": "weeks",
+    "months": "months",
+    "years": "years"
+  },
+  "no-translation-available": "No translation available",
+  "read-next": "Read next",
   "heading": "Welcome to",
   "change-locale": "Change locale",
   "error-with-status": "A {{statusCode}} error occurred on server",
   "error-without-status": "An error occurred on the server",
   "edit-on-github": "Edit on Github",
-  "open-google-collab": "Open in Collab",
+  "open-google-collab": "Open in Colab",
   "github-not-connected": "Your Github account is not connected.",
   "github-warning": "Your Github account is not connected. Only active 4Geeks Academy students with a conected Github account will be able to get unlimited Codespace hours.",
   "title": "Welcome | Learn",
@@ -13,18 +42,24 @@
   "lesson": "Lesson",
   "exercise": "Exercise",
   "project": "Project",
+  "article": "How to",
+  "how-to": "How to",
   "quiz": "Quiz",
   "filter": "Filter",
   "filters": "Filters",
   "sort": "Sort",
   "close": "Close",
+  "try-again": "Try again",
   "continue": "Continue",
   "confirm": "Confirm",
   "submit": "Submit",
   "enroll": "Enroll now",
+  "enroll-totally-free": "Enroll totally free",
+  "enroll-for-connector": "Enroll for",
   "learn-more": "Learn more",
   "more-technologies":"More technologies",
-  "continue-learning":"Continue learning for free about:<br><br>{{technologies}} and more.",
+  "continue-learning":"Continue learning about:",
+  "technologies-and-more": "{{technologies}} and more.",
   "user-id": "User ID",
   "day": "Day",
   "days": "Days",
@@ -52,8 +87,16 @@
   "open": "Open",
   "any-available": "{{any}} available",
   "not-available": "Not available",
-  "live-demo": "Live demo",
+  "live-demo": "Solution video",
+  "solution-code": "Solution code",
+  "video-solution": "Contains video solution",
+  "watch-video": "Watch video",
+  "watch-video-solution": "Watch video solution",
+  "review-solution": "Review solution code",
+  "supplementary-material": "Supplementary Material",
+  "suggested-material": "In order to prepare better for completing this exercises, we suggest the following materials",
   "live-now": "Live Now!",
+  "live": "Live",
   "technologies": "Technologies",
   "full-screen": "Full screen",
   "no-title": "No title 🙂",
@@ -89,9 +132,19 @@
     "mark-as-not-done": "Mark as not done"
   },
   "learnpack": {
-    "description": "This practice will reroute your browser to LearnPack - an interactive learning tool that runs integrated with VSCode.",
-    "new-exercise": "Start new exercise",
-    "continue-exercise": "Continue exercise"
+    "description": "<strong>\"{{projectName}}\"</strong> uses LearnPack for an interactive and auto-graded experience; choose one of the following options to start working on the project:",
+    "description2": "This practice will reroute your browser to LearnPack - an interactive learning tool that runs integrated with VSCode.",
+    "new-exercise": "Start from the beginning",
+    "continue-exercise": "Continue from a previous session",
+    "open-locally": "Open locally on your computer",
+    "recommended": "Recommended",
+    "open-in-learnpack-button": {
+      "text": "Open in the cloud",
+      "title": "Open in the cloud",
+      "description": "We take care of <a class=\"link\" href=\"https://4geeks.com/click-and-learn\">setup and installations</a> for all the required technologies to run this exercise or project.",
+      "type": "dropdown"
+    },
+    "cloneInstructions": "This exercise can be downloaded and run locally if you have node.js installed on your <a class=\"link\" href=\"https://4geeks.com/how-to/install-node-nvm-mac-osx\">Mac</a> or <a class=\"link\" href=\"https://4geeks.com/how-to/nvm-install-windows\">PC</a>. Start by installing learnpack and clone this project into your computer by typing the following command on your terminal:\n\n``` bash\n$ npm i @learnpack/learnpack -g\n$ git clone {{urlToClone}}\n```\nNote: This will create a new folder <strong>\"{{repoName}}\"</strong> in your computer with the project code inside.\n\n<strong>If you want to use VSCode:</strong> Make sure you have the <a class=\"link\" target=\"_blank\" href=\"https://marketplace.visualstudio.com/items?itemName=learn-pack.learnpack-vscode\">LearnPack extension</a> installed, open the folder in VSCode and type `learnpack start` on your vscode terminal.\n\n<strong>To run without VSCode:</strong> Use your computer terminal to get inside your recently created folder and start learnpack:\n\n```bash\n$ cd {{repoName}}\n$ learnpack start\n```\nRead the <a class=\"link\" href=\"{{readmeUrl}}\">README.md</a> file and follow the rest of the instructions."  
   },
   "upgrade-plan": {
     "title": "We are sorry, you don't have enough privileges to access this block of content, please signup or upgrade your plan to access it.",
@@ -133,7 +186,7 @@
     "pay-per-month": "Pay {{value}} month",
     "pay-per-half": "Pay {{value}} half"
   },
-  "upgrade": "upgrade",
+  "upgrade": "Upgrade",
   "go-back": "Go back",
   "modal-tech-title": "{{technology}}",
   "modal-tech-description": "By entering your data you will unlock the interactive content of \"{{title}}\" and many more",
@@ -168,13 +221,90 @@
   },
   "live-event": {
     "title": "Live classes, coding sessions, workshops and hangouts every few hours.",
-    "readMoreUrl": "https://4geeks.com/lesson/live-events-workshops-and-classes"
+    "readMoreUrl": "https://4geeks.com/docs/knowledge-base-4geeks/live-events-workshops-and-classes"
   },
+  "upcoming-workshops": "Upcoming workshops",
+  "workshop": "Workshop",
   "submit-project": "Submit project",
   "uploadScreenshot": "Upload screenshot",
   "continue-learning-course": "Continue learning for free about:",
   "logout-and-switch-user": "Logout and switch user",
   "free": "Free",
   "login": "Login",
-  "privacy-policy": "Privacy policy"
+  "privacy-policy": "Privacy policy",
+  "bootcamp": {
+    "planType": "bootcamp",
+    "type": "Unlimited Experience",
+    "period_label": "",
+    "title": "Bootcamp Program",
+    "description": "Fast track your career change with a Bootcamp",
+    "ask": "Ask for pricing",
+    "button": "Request More Info",
+    "button_link": "https://4geeksacademy.com/programs",
+    "subtitle": "Bootcamp Program",
+    "sub-description": "Join a cohort in a live classroom environment and  unlimited support until you find a job.",
+    "service_items": {
+      "title": "Everything on Live & with Feedback plus...",
+      "items": [{
+        "label": "Unlimited live workshops "
+      },
+      {
+        "label": "Unlimited one-on-one mentoring sessions"
+      },
+      {
+        "label": "Unlimited group mentoring sessions"
+      }]
+    },
+    "featured_info": [
+      {
+        "service": {
+          "slug": "live-classes",
+          "title": "Live classes",
+          "icon": "onlinePeople"
+        },
+        "features": [{ "description": "Take part of a group of students learning together with a teacher on weekly live classes." }]
+      },
+      {
+        "service": {
+          "slug": "carrer-support",
+          "title": "Career support",
+          "icon": "support"
+        },
+        "features": [{ "description": "Get feedback on your resume, LinkedIn and other online profiles, and access our vast hiring partner network, internship opportunities and more." }]
+      },
+      {
+        "service": {
+          "slug": "job-guarantee",
+          "title": "Job guarantee*",
+          "icon": "briefcase"
+        },
+        "features": [{ "description": "Get a job within 6 months upon graduation or get money back; <a style=\"color: #0097CD;\" target=\"__blank\" href='https://storage.googleapis.com/4geeks-academy-website/PDF%20and%20Docs/Conditions%20Job%20Guaranteed%20Program.pdf'>conditions apply.</a>" }]
+      },
+      {
+        "service": {
+          "slug": "certified-by-us",
+          "title": "Certified by U.S. FL Dep. of Education",
+          "icon": "certificate"
+        },
+        "features": [{ "description": "Our bootcamp certificates have a badge certified by the US Florida Dep. of Education." }]
+      },
+      {
+        "service": {
+          "slug": "access-to-premium-community",
+          "title": "Access to premium community",
+          "icon": "crown"
+        },
+        "features": [{ "description": "Our premium community gives you access to office space worldwide, events inside partner companies and employers, job fairs, networking events, an exclusive slack channel, and more perks." }]
+      },
+      {
+        "service": {
+          "slug": "office-space-world-wide",
+          "title": "Office space world-wide",
+          "icon": "office"
+        },
+        "features": [{ "description": "Get access to office space world-wide." }]
+      }
+    ]
+  },
+  "hrs-average": "{{number}}hrs average"
 }

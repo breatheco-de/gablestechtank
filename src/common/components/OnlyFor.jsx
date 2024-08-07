@@ -5,40 +5,50 @@ import { useRouter } from 'next/router';
 import useTranslation from 'next-translate/useTranslation';
 import Icon from './Icon';
 import useStyle from '../hooks/useStyle';
+import useCohortHandler from '../hooks/useCohortHandler';
 
-function Component({ withBanner }) {
+function Component({ withBanner, children }) {
   const { t } = useTranslation('common');
   const { featuredColor, backgroundColor } = useStyle();
   const router = useRouter();
 
   return withBanner ? (
-    <Box display="flex" background={backgroundColor} minHeight="auto" border="5px solid" borderColor={featuredColor} borderRadius="14px" p="0" gridGap="26px">
-      <Box display="flex" justifyContent="center" alignItems="center" style={{ aspectRatio: '1' }} width="auto" minHeight="160px" height="auto" background={featuredColor} borderRadius="7px" m="4px">
-        <Icon icon="padlock" width="60px" height="65px" />
-      </Box>
-      <Box my="1rem" display="flex" flexDirection="column" gridGap="24px" width="100%">
-        <Box p={{ base: '0 15% 0 0', md: '0 45% 0 0' }} fontSize="18px" fontWeight="700">
-          {t('upgrade-plan.title')}
+    <>
+      <Box display="flex" flexDirection={{ base: 'column', sm: 'row' }} background={backgroundColor} minHeight="auto" border="5px solid" borderColor={featuredColor} borderRadius="14px" p="0" gridGap={{ base: '0', sm: '26px' }}>
+        <Box display="flex" justifyContent="center" alignItems="center" style={{ aspectRatio: '1' }} width="auto" minHeight="160px" height={{ base: '160px', md: 'auto' }} background={featuredColor} borderRadius="7px" m="4px">
+          <Icon icon="padlock" width="60px" height="65px" />
         </Box>
-        <Button variant="default" onClick={() => router.push('/login')} w="fit-content" textTransform="uppercase" fontSize="14px" letterSpacing="0.05em">
-          {t('upgrade-plan.button')}
-        </Button>
+        <Box my="1rem" display="flex" padding={{ base: '0 16px', sm: '0' }} flexDirection="column" gridGap="24px" width="100%">
+          <Box p={{ base: '0', sm: '0 26px 0 0' }} fontSize="18px" fontWeight="700">
+            {t('upgrade-plan.title')}
+          </Box>
+          <Button variant="default" onClick={() => router.push('/login')} w="fit-content" textTransform="uppercase" fontSize="14px" letterSpacing="0.05em">
+            {t('upgrade-plan.button')}
+          </Button>
+        </Box>
       </Box>
+      <Box display="none">
+        {children}
+      </Box>
+    </>
+  ) : (
+    <Box display="none">
+      {children}
     </Box>
-  ) : null;
+  );
 }
 
 function OnlyFor({
-  cohortSession, academy, capabilities, children, onlyMember, onlyTeachers, profile,
+  cohortSession, academy, capabilities, children, onlyMember, onlyTeachers, withBanner, profile,
 }) {
   const academyNumber = Math.floor(academy);
-  const teachers = ['TEACHER', 'ASSISTANT'];
+  const teachers = ['TEACHER', 'ASSISTANT', 'REVIEWER'];
   const commonUser = ['TEACHER', 'ASSISTANT', 'STUDENT', 'REVIEWER'];
+  const { state } = useCohortHandler();
+  const { userCapabilities: cohortCapabilities } = state;
 
-  const cohortCapabilities = cohortSession?.user_capabilities || [];
   const profileCapabilities = profile?.permissionsSlug || [];
-
-  const userCapabilities = onlyTeachers ? cohortCapabilities : profileCapabilities;
+  const userCapabilities = [...new Set([...cohortCapabilities, ...profileCapabilities])];
   const profileRole = profile?.roles?.length > 0 && profile?.roles[0]?.role?.toUpperCase();
   const cohortRole = cohortSession?.cohort_role?.toUpperCase() || profileRole || 'NONE';
   const isCapableAcademy = cohortSession && cohortSession.academy?.id === academyNumber;
@@ -51,17 +61,27 @@ function OnlyFor({
 
   const haveRequiredCapabilities = () => {
     if (!cohortSession) return false;
-    if (onlyTeachers && isTeacher && isCapableRole) return true;
-    if (onlyTeachers && isTeacher && capabilitiesNotExists) return true;
-    if (onlyMember && isMember && isCapableRole) return true;
-    if (onlyMember && isMember && capabilitiesNotExists) return true;
-    if (!academy && isCapableRole) return true;
+    if (onlyTeachers && isTeacher) {
+      if (isCapableRole) return true;
+      if (capabilitiesNotExists) return true;
+    }
+    if (onlyMember && isMember) {
+      if (isCapableRole) return true;
+      if (capabilitiesNotExists) return true;
+    }
+    if (!onlyMember && !onlyTeachers && isCapableRole) return true;
     if (capabilitiesNotExists && isCapableAcademy) return true;
     if (academy && isCapableAcademy && isCapableRole) return true;
     return false;
   };
 
-  return haveRequiredCapabilities() ? children : <Component />;
+  return haveRequiredCapabilities()
+    ? children
+    : (
+      <Component withBanner={withBanner}>
+        {children}
+      </Component>
+    );
 }
 
 OnlyFor.propTypes = {
@@ -70,22 +90,23 @@ OnlyFor.propTypes = {
   capabilities: PropTypes.arrayOf(PropTypes.string),
   children: PropTypes.node.isRequired,
   onlyMember: PropTypes.bool,
-
   onlyTeachers: PropTypes.bool,
   profile: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
+  withBanner: PropTypes.bool,
 };
 
 OnlyFor.defaultProps = {
   academy: '',
   capabilities: [],
-
   onlyMember: false,
   onlyTeachers: false,
   profile: {},
+  withBanner: false,
 };
 
 Component.propTypes = {
   withBanner: PropTypes.bool,
+  children: PropTypes.node.isRequired,
 };
 Component.defaultProps = {
   withBanner: false,

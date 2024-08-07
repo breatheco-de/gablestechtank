@@ -8,14 +8,18 @@ import useStyle from '../../hooks/useStyle';
 import Heading from '../Heading';
 import Icon from '../Icon';
 import Image from '../Image';
+import ModalToGetAccess, { stageType } from '../ModalToGetAccess';
 import Link from '../NextChakraLink';
 import bc from '../../services/breathecode';
+import useAuth from '../../hooks/useAuth';
 import useOnline from '../../hooks/useOnline';
 import AvatarUser from '../../../js_modules/cohortSidebar/avatarUser';
 import Text from '../Text';
 import { AvatarSkeletonWrapped } from '../Skeleton';
 import modifyEnv from '../../../../modifyEnv';
-import { usePersistent } from '../../hooks/usePersistent';
+import { validatePlanExistence } from '../../handlers/subscriptions';
+import { getStorageItem, isDevMode } from '../../../utils';
+import { reportDatalayer } from '../../../utils/requests';
 
 function NoConsumablesCard({ t, setMentoryProps, handleGetMoreMentorships, mentoryProps, subscriptionData, disableBackButton = false, ...rest }) {
   return (
@@ -38,6 +42,7 @@ function NoConsumablesCard({ t, setMentoryProps, handleGetMoreMentorships, mento
         display="flex"
         variant="default"
         fontSize="14px"
+        isLoading={rest.isLoading}
         fontWeight={700}
         onClick={() => handleGetMoreMentorships()}
         alignItems="center"
@@ -92,20 +97,30 @@ function MentoringConsumables({
 }) {
   const { t } = useTranslation('dashboard');
 
-  const [cohortSession] = usePersistent('cohortSession', {});
+  const { user } = useAuth();
   const BREATHECODE_HOST = modifyEnv({ queryString: 'host', env: process.env.BREATHECODE_HOST });
-  const isNotProduction = process.env.VERCEL_ENV !== 'production';
   const commonBackground = useColorModeValue('white', 'rgba(255, 255, 255, 0.1)');
   const [open, setOpen] = useState(false);
+  const accessToken = getStorageItem('accessToken');
   const [existsMentors, setExistsMentors] = useState(true);
   const { borderColor, lightColor, hexColor } = useStyle();
+  const [isModalToGetAccessOpen, setIsModalToGetAccessOpen] = useState(false);
+  const [isFetchingDataForModal, setIsFetchingDataForModal] = useState(false);
+  const [dataToGetAccessModal, setDataToGetAccessModal] = useState({});
+  const [consumableOfService, setConsumableOfService] = useState({});
   const router = useRouter();
   const toast = useToast();
   const { slug } = router.query;
 
-  const currentBalance = (Number(mentorshipService?.balance) && mentorshipService?.balance) || (Number(mentorshipService?.balance?.unit) && mentorshipService?.balance?.unit);
+  const mentorshipBalance = mentorshipService?.balance?.unit || mentorshipService?.balance || consumableOfService?.balance?.unit;
+  const currentBalance = Number(mentorshipBalance && mentorshipBalance);
 
-  const existConsumablesOnCurrentService = consumables?.mentorship_service_sets?.length > 0 && Object.values(mentorshipService).length > 0 && currentBalance > 0;
+  const calculateExistenceOfConsumable = () => {
+    if (consumableOfService.available_as_saas === false) return true;
+    if (consumableOfService?.balance) return consumableOfService?.balance?.unit > 0 || consumableOfService?.balance?.unit === -1;
+    return consumables?.mentorship_service_sets?.length > 0 && Object.values(mentorshipService).length > 0 && (currentBalance > 0 || currentBalance === -1);
+  };
+  const existConsumablesOnCurrentService = calculateExistenceOfConsumable();
 
   useEffect(() => {
     if (allMentorsAvailable?.length === 0) {
@@ -115,64 +130,91 @@ function MentoringConsumables({
     }
   }, [allMentorsAvailable]);
 
-  const handleService = (service) => {
-    bc.mentorship({
-      services: service.slug,
-      status: 'ACTIVE',
-      syllabus: slug,
-    }).getMentor()
-      .then((res) => {
-        setProgramMentors(res.data);
-        setTimeout(() => {
-          setMentoryProps({ ...mentoryProps, service });
-          setSavedChanges({ ...savedChanges, service });
-        }, 50);
-      })
-      .catch(() => {
-        toast({
-          position: 'top',
-          title: 'Error',
-          description: t('alert-message:error-finding-mentors'),
-          status: 'error',
-          duration: 7000,
-          isClosable: true,
-        });
-      });
+  const manageMentorsData = (service, data) => {
+    reportDatalayer({
+      dataLayer: {
+        event: 'select_mentorship_service',
+        path: router.pathname,
+        consumables_amount: currentBalance,
+        mentorship_service: service?.slug,
+      },
+    });
+    const relatedConsumables = consumables.find((consumable) => consumable?.mentorship_services?.some((c) => c?.slug === service?.slug));
+    setProgramMentors(data);
+    setConsumableOfService({
+      ...relatedConsumables,
+      balance: {
+        unit: service?.academy?.available_as_saas === false ? -1 : relatedConsumables?.balance?.unit,
+      },
+      available_as_saas: service?.academy?.available_as_saas,
+    });
+    setTimeout(() => {
+      setMentoryProps({ ...mentoryProps, service });
+      setSavedChanges({ ...savedChanges, service });
+    }, 50);
   };
 
+  const handleService = async (service) => {
+    try {
+      if (allMentorsAvailable.length > 0) {
+        const mentorsByService = allMentorsAvailable.filter((mentor) => mentor.services.some((s) => s.slug === service.slug));
+        manageMentorsData(service, mentorsByService);
+      } else {
+        const res = await bc.mentorship({
+          services: service.slug,
+          status: 'ACTIVE',
+          syllabus: slug,
+          academy: service?.academy?.id,
+        }).getMentor();
+        manageMentorsData(service, res.data);
+      }
+    } catch (e) {
+      toast({
+        position: 'top',
+        title: 'Error',
+        description: t('alert-message:error-finding-mentors'),
+        status: 'error',
+        duration: 7000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const servicesWithMentorsAvailable = servicesFiltered.filter((service) => allMentorsAvailable.some((mentor) => mentor.services.some((mentServ) => mentServ.slug === service.slug)));
+
   const handleGetMoreMentorships = () => {
+    setIsFetchingDataForModal(true);
     const academyService = mentoryProps?.service?.slug
       ? mentoryProps?.service
       : subscriptionData?.selected_mentorship_service_set?.mentorship_services?.[0];
 
-    const coincidencesOfServiceWithOtherSubscriptions = allSubscriptions?.filter(
-      (s) => s?.selected_mentorship_service_set?.mentorship_services.some(
-        (service) => service.slug === academyService?.slug,
-      ),
-    );
-    const relevantProps = coincidencesOfServiceWithOtherSubscriptions.map(
-      (subscription) => ({
-        mentorship_service_set_slug: subscription?.selected_mentorship_service_set.slug,
-        plan_slug: subscription?.plans?.[0]?.slug,
-      }),
-    );
-
-    const propsToQueryString = {
-      mentorship_service_set: relevantProps.map((p) => p.mentorship_service_set_slug).join(','),
-      plans: relevantProps.map((p) => p.plan_slug).join(','),
-      selected_service: mentoryProps?.service?.slug,
-    };
-
-    router.push({
-      pathname: '/checkout',
-      query: propsToQueryString,
+    validatePlanExistence(allSubscriptions).then((data) => {
+      setDataToGetAccessModal({
+        ...data,
+        event: '',
+        academyService,
+      });
+      setIsModalToGetAccessOpen(true);
+    })
+      .finally(() => setIsFetchingDataForModal(false));
+  };
+  const reportBookMentor = () => {
+    reportDatalayer({
+      dataLayer: {
+        event: 'book_mentorship_session',
+        path: router.pathname,
+        consumables_amount: currentBalance,
+        mentorship_service: mentoryProps?.service?.slug,
+        mentor_name: `${mentoryProps.mentor.user.first_name} ${mentoryProps.mentor.user.last_name}`,
+        mentor_id: mentoryProps.mentor.slug,
+        mentor_booking_url: mentoryProps.mentor.booking_url,
+      },
     });
   };
 
   return (
     <Box
       position="relative"
-      backgroundColor={useColorModeValue('yellow.light', 'featuredDark')}
       width={width}
       height="auto"
       borderWidth="0px"
@@ -233,15 +275,29 @@ function MentoringConsumables({
                 {t('supportSideBar.mentors-available', { count: 3 })}
               </Text>
             </Box>
-            <Button variant="default" onClick={() => setOpen(true)}>
+            {/* Schedule event */}
+            <Button
+              variant="link"
+              fontSize="14px"
+              onClick={() => {
+                setOpen(true);
+                reportDatalayer({
+                  dataLayer: {
+                    event: 'begin_mentorship_session_schedule',
+                    path: router.pathname,
+                    consumables_amount: currentBalance,
+                  },
+                });
+              }}
+            >
               {t('supportSideBar.schedule-button')}
               <Icon icon="longArrowRight" width="24px" height="10px" color="currentColor" />
             </Button>
           </>
         )}
 
-        {isNotProduction && open && mentoryProps?.service && !mentoryProps?.mentor && existConsumablesOnCurrentService && (
-          <Box display="flex" alignItems="center" fontSize="18px" fontWeight={700} gridGap="10px" padding="0 10px" margin="10px 0 0px 0">
+        {isDevMode && open && mentoryProps?.service && !mentoryProps?.mentor && existConsumablesOnCurrentService && (
+          <Box display="flex" alignItems="center" fontSize="18px" fontWeight={700} gridGap="10px" padding="0 10px" margin="10px 0 0px 0" style={{ textWrap: 'nowrap' }}>
             <Box>
               {t('mentorship.you-have')}
             </Box>
@@ -257,7 +313,7 @@ function MentoringConsumables({
           </Box>
         )}
         {mentoryProps?.service && open && !mentoryProps?.mentor && !existConsumablesOnCurrentService ? (
-          <NoConsumablesCard t={t} mentoryProps={mentoryProps} handleGetMoreMentorships={handleGetMoreMentorships} subscriptionData={subscriptionData} setMentoryProps={setMentoryProps} mt="30px" />
+          <NoConsumablesCard t={t} isLoading={isFetchingDataForModal} mentoryProps={mentoryProps} handleGetMoreMentorships={handleGetMoreMentorships} subscriptionData={subscriptionData} setMentoryProps={setMentoryProps} mt="30px" />
         ) : open && (
           <>
             {!mentoryProps?.time ? (
@@ -277,8 +333,8 @@ function MentoringConsumables({
                     <Image
                       src={mentoryProps.mentor?.user.profile?.avatar_url}
                       alt={`selected ${mentoryProps.mentor?.user?.first_name} ${mentoryProps.mentor?.user?.last_name}`}
-                      width="40px"
-                      height="40px"
+                      width={40}
+                      height={40}
                       objectFit="cover"
                       style={{ minWidth: '40px', width: '40px !important', height: '40px !important' }}
                       styleImg={{ borderRadius: '50px' }}
@@ -308,7 +364,7 @@ function MentoringConsumables({
                       </InputRightElement>
                     </InputGroup>
                     <Box maxHeight="10rem" width="100%" overflow="auto" borderBottomRadius="0.375rem">
-                      {servicesFiltered.length > 0 ? servicesFiltered.map((service) => (
+                      {servicesWithMentorsAvailable.length > 0 ? servicesWithMentorsAvailable.map((service) => (
                         <Box key={service.name} borderTop="1px solid" cursor="pointer" onClick={() => handleService(service)} borderColor={borderColor} py="14px" background={commonBackground} width="100%" px="22px" _hover={{ background: useColorModeValue('featuredLight', 'gray.700') }}>
                           {service.name}
                         </Box>
@@ -341,8 +397,8 @@ function MentoringConsumables({
                               <Image
                                 src={mentor?.user.profile?.avatar_url}
                                 alt={`${mentor?.user?.first_name} ${mentor?.user?.last_name}`}
-                                width="78px"
-                                height="78px"
+                                width={78}
+                                height={78}
                                 objectFit="cover"
                                 style={{ minWidth: '78px', width: '78px !important', height: '78px !important' }}
                                 styleImg={{ borderRadius: '50px' }}
@@ -357,11 +413,12 @@ function MentoringConsumables({
                                   {mentor?.booking_url ? (
                                     <Link
                                       variant="default"
-                                      href={`${BREATHECODE_HOST}/mentor/${mentor?.slug}?utm_campaign=${mentoryProps?.service?.slug}&utm_source=4geeks&salesforce_uuid=${cohortSession?.bc_id}`}
+                                      onClick={() => reportBookMentor()}
+                                      href={`${BREATHECODE_HOST}/mentor/${mentor?.slug}?utm_campaign=${mentoryProps?.service?.slug}&utm_source=4geeks&salesforce_uuid=${user?.id}&token=${accessToken}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                     >
-                                      {t('supportSideBar.create-session-text', { name: mentor.user.first_name })}
+                                      {t('supportSideBar.create-session-text')}
                                     </Link>
                                   ) : (
                                     <Box fontSize="15px">
@@ -432,6 +489,15 @@ function MentoringConsumables({
           </>
         )}
       </Box>
+
+      <ModalToGetAccess
+        isOpen={isModalToGetAccessOpen}
+        stage={stageType.outOfConsumables}
+        externalData={dataToGetAccessModal}
+        onClose={() => {
+          setIsModalToGetAccessOpen(false);
+        }}
+      />
     </Box>
   );
 }

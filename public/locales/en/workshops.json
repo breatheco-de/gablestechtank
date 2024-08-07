@@ -1,11 +1,19 @@
 {
   "no-event-found": "No event available with this URL 😕",
   "host-label-text": "Host for this event",
+  "workshop-asset-ended": "The following project was built during this workshop",
+  "workshop-asset-upcoming": "During this workshop we will be building the following project",
+  "documents": "Prepare yourself for this workshop",
   "suggest-join-event": "Click below to confirm your participation and save your spot for this event",
+  "suggest-join-in-person-event": "This is a live in-person event, you can reserve your spot here",
   "reserv-button-text": "Reserve your spot",
   "duration-hours": "{{hours}}hr duration",
   "greetings": "Hello {{name}} 👋",
-  "switch-user-connector": "You are not {{name}}?",
+  "starts-in": "Event Starts In:",
+  "in-person": "In person event",
+  "in-person-confirm": "This is an in-person event that will take place in {{address}}. Do you still want to confirm your attendance?",
+  "confirm-attendance": "Yes, I will be there",
+  "deny-attendance" : "No, I will not attend",
   "form": {
     "title": "Join this event",
     "description": "Sign in to join other coders live solving technical or career challenges.",
@@ -14,6 +22,7 @@
     "ready-to-join-description-logged": "This event is happening right now. Click below to join the event.",
     "joined-title": "This event will start soon",
     "joined-description": "You have already signed up for this event. You will be able to join once it starts.",
+    "joined-description-in-person": "You have already signed up for this event. We'll be waiting for you!",
     "finished-title": "This event has ended",
     "finished-description": "Keep looking for new learning experiences and keep your passion for knowledge alive!"
   },
@@ -21,10 +30,23 @@
   "join-workshop": "Register for this Workshop",
   "join": "Join Now",
   "event-finished": "Event Finished",
+  "checkin-modal": {
+    "title": "Thank you for signing up for our workshop, now is time to get ready",
+    "sub-title": "Get the most out of this workshop",
+    "items": [
+      "The host is already answering questions on our WhatsApp community",
+      "Chat with other attendees",
+      "Get updates about this and future workshops",
+      "Practice interactively thanks to Learnpack and our AI mentor"
+    ],
+    "join-conversation": "Join the conversation",
+    "conversation-link": "https://chat.whatsapp.com/CBppI0ulMt8Dx4Fsw9AreG"
+  },
   "no-consumables": {
     "description": "You have run out of workshops, but don't worry, you can get more in a few clicks.",
     "link-text": "Learn more.",
     "link": "",
     "get-more-workshops": "Get more workshops"
-  }
+  },
+  "back-to-workshops": "Go back"
 }

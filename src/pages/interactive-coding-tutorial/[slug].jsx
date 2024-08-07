@@ -1,57 +1,46 @@
+import { useRef, useState, useEffect } from 'react';
 import {
   Box, useColorModeValue, Flex, useColorMode, Skeleton,
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
-import { useRouter } from 'next/router';
-import { useEffect } from 'react';
 import useTranslation from 'next-translate/useTranslation';
 import getT from 'next-translate/getT';
 import Head from 'next/head';
 import Heading from '../../common/components/Heading';
 import Link from '../../common/components/NextChakraLink';
 import Text from '../../common/components/Text';
-import Icon from '../../common/components/Icon';
+import useAuth from '../../common/hooks/useAuth';
+import FixedBottomCta from '../../js_modules/projects/FixedBottomCta';
 import SimpleTable from '../../js_modules/projects/SimpleTable';
+import TabletWithForm from '../../js_modules/projects/TabletWithForm';
 import MarkDownParser from '../../common/components/MarkDownParser';
 import { MDSkeleton } from '../../common/components/Skeleton';
 import getMarkDownContent from '../../common/components/MarkDownParser/markdown';
 import GridContainer from '../../common/components/GridContainer';
 import MktRecommendedCourses from '../../common/components/MktRecommendedCourses';
-import redirectsFromApi from '../../../public/redirects-from-api.json';
+// import DynamicCallToAction from '../../common/components/DynamicCallToAction';
+// import PodcastCallToAction from '../../common/components/PodcastCallToAction';
 // import MktSideRecommendedCourses from '../../common/components/MktSideRecommendedCourses';
-import { parseQuerys } from '../../utils/url';
-import { cleanObject, unSlugifyCapitalize } from '../../utils/index';
-import { ORIGIN_HOST, WHITE_LABEL_ACADEMY } from '../../utils/variables';
+import { cleanObject, isWindow } from '../../utils/index';
+import { ORIGIN_HOST } from '../../utils/variables';
+import { getCacheItem, setCacheItem } from '../../utils/requests';
+import { log } from '../../utils/logging';
+import RelatedContent from '../../common/components/RelatedContent';
+import ReactPlayerV2 from '../../common/components/ReactPlayerV2';
+import MktEventCards from '../../common/components/MktEventCards';
+import SupplementaryMaterial from '../../common/components/SupplementaryMaterial';
 
 export const getStaticPaths = async ({ locales }) => {
-  const querys = parseQuerys({
-    asset_type: 'PROJECT',
-    visibility: 'PUBLIC',
-    status: 'PUBLISHED',
-    academy: WHITE_LABEL_ACADEMY,
-    limit: 2000,
-  });
-  let projects = [];
-  const resp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset${querys}`);
-  const data = await resp.json();
+  const assetList = await import('../../lib/asset-list.json');
+  const data = assetList.projects;
 
-  projects = Object.values(data.results);
-  if (resp.status >= 200 && resp.status < 400) {
-    console.log(`SUCCESS: ${projects.length} Projects fetched for /interactive-coding-tutorial`);
+  if (data?.length) {
+    log(`SUCCESS: ${data?.length} Projects fetched for /interactive-coding-tutorial`);
   } else {
-    console.error(`Error ${resp.status}: fetching Projects list for /interactive-coding-tutorial`);
+    console.error('Error: fetching Projects list for /interactive-coding-tutorial');
   }
 
-  for (let i = 0; i < projects.length; i += 1) {
-    if (projects[i].difficulty === null) projects[i].difficulty = 'unknown';
-    if (typeof projects[i].difficulty === 'string') {
-      if (projects[i].difficulty?.toLowerCase() === 'junior') projects[i].difficulty = 'easy';
-      else if (projects[i].difficulty?.toLowerCase() === 'semi-senior') projects[i].difficulty = 'intermediate';
-      else if (projects[i].difficulty?.toLowerCase() === 'senior') projects[i].difficulty = 'hard';
-    }
-  }
-
-  const paths = projects.flatMap((res) => locales.map((locale) => ({
+  const paths = data.flatMap((res) => locales.map((locale) => ({
     params: {
       slug: res.slug,
     },
@@ -67,109 +56,122 @@ export const getStaticProps = async ({ params, locale, locales }) => {
   const t = await getT(locale, 'projects');
   const { slug } = params;
   const staticImage = t('seo.image', { domain: ORIGIN_HOST });
-  const response = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}?asset_type=project`);
-  const result = await response.json();
-  const engPrefix = {
-    us: 'en',
-    en: 'en',
-  };
 
-  const isCurrenLang = locale === engPrefix[result?.lang] || locale === result?.lang;
+  try {
+    let result;
+    let markdown;
+    result = await getCacheItem(slug);
+    const langPrefix = locale === 'en' ? '' : `/${locale}`;
 
-  if (response.status > 400 || result.asset_type !== 'PROJECT' || !isCurrenLang) {
+    if (!result) {
+      console.log(`${slug} not found on cache`);
+      const assetList = await import('../../lib/asset-list.json')
+        .then((res) => res.default)
+        .catch(() => []);
+      result = assetList.projects.find((l) => l?.slug === slug);
+
+      const engPrefix = {
+        us: 'en',
+        en: 'en',
+      };
+
+      const isCurrenLang = locale === engPrefix[result?.lang] || locale === result?.lang;
+
+      if (result.asset_type !== 'PROJECT' || !isCurrenLang) {
+        return {
+          notFound: true,
+        };
+      }
+      const markdownResp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.md`);
+
+      if (markdownResp.status >= 400) {
+        return {
+          notFound: true,
+        };
+      }
+      markdown = await markdownResp.text();
+
+      await setCacheItem(slug, { ...result, markdown });
+    } else {
+      markdown = result.markdown;
+    }
+
+    const {
+      title, description, translations, preview,
+    } = result;
+    const difficulty = typeof result.difficulty === 'string' ? result.difficulty.toLowerCase() : 'unknown';
+    const translationInEnglish = translations?.en || translations?.us;
+
+    const translationArray = [
+      {
+        value: 'en',
+        lang: 'en',
+        slug: (result?.lang === 'en' || result?.lang === 'us') ? result?.slug : translationInEnglish,
+        link: `/interactive-coding-tutorial/${(result?.lang === 'en' || result?.lang === 'us') ? result?.slug : translationInEnglish}`,
+      },
+      {
+        value: 'es',
+        lang: 'es',
+        slug: result?.lang === 'es' ? result.slug : translations?.es,
+        link: `/es/interactive-coding-tutorial/${result?.lang === 'es' ? result.slug : translations?.es}`,
+      },
+    ].filter((item) => item?.slug !== undefined);
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      name: result?.title,
+      description: result?.description,
+      url: `${ORIGIN_HOST}${langPrefix}/interactive-coding-tutorial/${slug}`,
+      image: preview || staticImage,
+      datePublished: result?.published_at,
+      dateModified: result?.updated_at,
+      author: result?.author ? {
+        '@type': 'Person',
+        name: `${result?.author?.first_name} ${result?.author?.last_name}`,
+      } : null,
+      keywords: result?.seo_keywords,
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${ORIGIN_HOST}${langPrefix}/interactive-coding-tutorial/${slug}`,
+      },
+    };
+
+    const cleanedStructuredData = cleanObject(structuredData);
+
+    return {
+      props: {
+        seo: {
+          title,
+          url: `/interactive-coding-tutorial/${slug}`,
+          slug,
+          description: description || '',
+          image: cleanedStructuredData.image,
+          translations: translationArray,
+          pathConnector: '/interactive-coding-tutorial',
+          type: 'article',
+          keywords: result?.seo_keywords || '',
+          card: 'large',
+          locales,
+          locale,
+          publishedTime: result?.created_at || '',
+          modifiedTime: result?.updated_at || '',
+        },
+        project: {
+          ...result,
+          difficulty,
+          structuredData: cleanedStructuredData,
+        },
+        markdown,
+        translations: translationArray,
+      },
+    };
+  } catch (error) {
+    console.error(`Error fetching page type PROJECT for /${locale}/interactive-coding-tutorial/${slug}`, error);
     return {
       notFound: true,
     };
   }
-
-  const {
-    title, description, translations, preview,
-  } = result;
-  const markdownResp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.md`);
-
-  if (markdownResp.status >= 400) {
-    return {
-      notFound: true,
-    };
-  }
-  const markdown = await markdownResp.text();
-
-  const difficulty = typeof result.difficulty === 'string' ? result.difficulty.toLowerCase() : 'unknown';
-  const ogUrl = {
-    en: `/interactive-coding-tutorial/${slug}`,
-    us: `/interactive-coding-tutorial/${slug}`,
-  };
-
-  const translationArray = [
-    {
-      value: 'us',
-      lang: 'en',
-      slug: translations?.us,
-      link: `/interactive-coding-tutorial/${translations?.us}`,
-    },
-    {
-      value: 'en',
-      lang: 'en',
-      slug: translations?.en,
-      link: `/interactive-coding-tutorial/${translations?.en}`,
-    },
-    {
-      value: 'es',
-      lang: 'es',
-      slug: translations?.es,
-      link: `/es/interactive-coding-tutorial/${translations?.es}`,
-    },
-  ].filter((item) => translations?.[item?.value] !== undefined);
-
-  const eventStructuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    name: result?.title,
-    description: result?.description,
-    url: `${ORIGIN_HOST}/${slug}`,
-    image: `${ORIGIN_HOST}/thumbnail?slug=${slug}`,
-    datePublished: result?.published_at,
-    dateModified: result?.updated_at,
-    author: result?.author ? {
-      '@type': 'Person',
-      name: `${result?.author?.first_name} ${result?.author?.last_name}`,
-    } : null,
-    keywords: result?.seo_keywords,
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `${ORIGIN_HOST}/${slug}`,
-    },
-  };
-
-  const cleanedStructuredData = cleanObject(eventStructuredData);
-
-  return {
-    props: {
-      seo: {
-        title,
-        url: ogUrl.en || `/${locale}/interactive-coding-tutorial/${slug}`,
-        slug,
-        description: description || '',
-        image: preview || staticImage,
-        translations,
-        pathConnector: '/interactive-coding-tutorial',
-        type: 'article',
-        keywords: result?.seo_keywords || '',
-        card: 'large',
-        locales,
-        locale,
-        publishedTime: result?.created_at || '',
-        modifiedTime: result?.updated_at || '',
-      },
-      project: {
-        ...result,
-        difficulty,
-        structuredData: cleanedStructuredData,
-      },
-      markdown,
-      translations: translationArray,
-    },
-  };
 };
 
 function TableInfo({ t, project, commonTextColor }) {
@@ -185,6 +187,12 @@ function TableInfo({ t, project, commonTextColor }) {
         <Text size="md" color={commonTextColor} textAlign="center" my="10px" px="0px">
           {t('table.description')}
         </Text>
+        <ReactPlayerV2
+          title="Video tutorial"
+          withModal
+          url={project?.intro_video_url}
+          withThumbnail
+        />
         <SimpleTable
           href="/interactive-coding-tutorials"
           difficulty={typeof project.difficulty === 'string' ? project.difficulty.toLowerCase() : 'unknown'}
@@ -192,7 +200,7 @@ function TableInfo({ t, project, commonTextColor }) {
           duration={project.duration}
           videoAvailable={project.solution_video_url}
           technologies={project.technologies}
-          liveDemoAvailable={project.intro_video_url}
+          liveDemoAvailable={project.solution_video_url}
         />
       </Box>
     </>
@@ -201,22 +209,39 @@ function TableInfo({ t, project, commonTextColor }) {
 
 function ProjectSlug({ project, markdown }) {
   const { t } = useTranslation('projects');
+  const { isAuthenticated } = useAuth();
+  const [isCtaVisible, setIsCtaVisible] = useState(true);
   const markdownData = markdown ? getMarkDownContent(markdown) : '';
-  const translations = project?.translations || { es: '', en: '' };
-  const commonBorderColor = useColorModeValue('gray.250', 'gray.900');
-  const commonTextColor = useColorModeValue('gray.600', 'gray.200');
   const { colorMode } = useColorMode();
-  const router = useRouter();
-  const { slug } = router.query;
-  const { locale } = router;
+  const tabletWithFormRef = useRef(null);
 
-  useEffect(() => {
-    const redirect = redirectsFromApi?.find((r) => r?.source === `${locale === 'en' ? '' : `/${locale}`}/interactive-coding-tutorial/${slug}`);
+  const getElementTopOffset = (elem) => {
+    if (elem && isWindow) {
+      const rect = elem.getBoundingClientRect();
 
-    if (redirect) {
-      router.push(redirect?.destination);
+      const { scrollY } = window;
+
+      return rect.top + scrollY;
     }
-  }, [router, router.locale, translations]);
+    return 0;
+  };
+
+  // eslint-disable-next-line consistent-return
+  useEffect(() => {
+    if (isWindow) {
+      window.addEventListener('scroll', () => {
+        if (tabletWithFormRef.current) {
+          const { scrollY } = window;
+          const top = getElementTopOffset(tabletWithFormRef.current);
+
+          if (top - scrollY > 700) setIsCtaVisible(true);
+          else setIsCtaVisible(false);
+        }
+      });
+
+      return () => window.removeEventListener('scroll', () => {});
+    }
+  }, []);
 
   return (
     <>
@@ -228,6 +253,13 @@ function ProjectSlug({ project, markdown }) {
           />
         </Head>
       )}
+      <FixedBottomCta
+        isCtaVisible={isCtaVisible && !isAuthenticated}
+        asset={project}
+        onClick={() => tabletWithFormRef.current?.scrollIntoView()}
+        width="calc(100vw - 15px)"
+        left="7.5px"
+      />
       <GridContainer
         height="100%"
         flexDirection="column"
@@ -236,7 +268,7 @@ function ProjectSlug({ project, markdown }) {
         padding="0 15px"
         gridGap="36px"
         gridTemplateColumns={{ base: 'repeat(12, 1fr)', lg: 'repeat(12, 1fr)' }}
-        display={{ base: 'block', sm: 'grid' }}
+        // display={{ base: 'block', sm: 'grid' }}
       >
         <Flex display={{ base: 'block', lg: 'flex' }} gridColumn={{ base: '2 / span 10', lg: '2 / span 7' }} height="100%" gridGap="26px">
           <Box flex="1" width="-webkit-fill-available">
@@ -270,27 +302,38 @@ function ProjectSlug({ project, markdown }) {
             <Box
               display={{ base: 'flex', lg: 'none' }}
               flexDirection="column"
-              backgroundColor={useColorModeValue('white', 'featuredDark')}
               margin="30px 0"
-            // width={{ base: '100%', md: '350px' }}
+              // width={{ base: '100%', md: '350px' }}
               minWidth={{ base: '100%', lg: '300px' }}
               maxWidth="350px"
               height="fit-content"
               borderWidth="0px"
-              borderRadius="17px"
               overflow="hidden"
-              border={1}
-              borderStyle="solid"
-              borderColor={commonBorderColor}
             >
-              {project && project?.difficulty ? (
+              {project ? (
                 <>
-                  <Box d="flex" justifyContent="center">
-                    <Icon icon="sideSupport" width="300px" height="70px" />
-                  </Box>
-                  <Box px="22px" pb="30px" pt="20px">
-                    <TableInfo t={t} project={project} commonTextColor={commonTextColor} />
-                  </Box>
+                  <SimpleTable
+                    href="/interactive-exercises"
+                    difficulty={project.difficulty !== null && project.difficulty.toLowerCase()}
+                    repository={project.url}
+                    duration={project.duration}
+                    videoAvailable={project.interactive ? project.solution_video_url : null}
+                    solution={project.interactive ? project.solution_url : null}
+                    liveDemoAvailable={project.intro_video_url}
+                    technologies={project?.technologies}
+                  />
+                  {/* <DynamicCallToAction
+                    assetId={project.id}
+                    assetTechnologies={project.technologies?.map((item) => item?.slug)}
+                    assetType="project"
+                    placement="side"
+                    marginTop="40px"
+                    maxWidth="none"
+                  />
+                  <PodcastCallToAction
+                    placement="side"
+                    marginTop="40px"
+                  /> */}
                 </>
               ) : (
                 <Skeleton height="100%" width="100%" borderRadius="17px" />
@@ -302,19 +345,34 @@ function ProjectSlug({ project, markdown }) {
               maxWidth="1012px"
               borderRadius="3px"
               background={useColorModeValue('white', 'darkTheme')}
-              className={`markdown-body ${colorMode === 'light' ? 'light' : 'dark'}`}
               transition="background .2s ease"
             >
-              {typeof markdown === 'string' ? (
-                <MarkDownParser content={markdownData.content} withToc />
-              ) : (
-                <MDSkeleton />
+              <Box className={`markdown-body ${colorMode === 'light' ? 'light' : 'dark'}`}>
+                {typeof markdown === 'string' ? (
+                  <MarkDownParser assetData={project} content={markdownData.content} withToc />
+                ) : (
+                  <MDSkeleton />
+                )}
+              </Box>
+              <Box display={{ base: 'block', lg: 'none' }} mt="20px">
+                <TabletWithForm hideCloneButton showSimpleTable={false} ref={tabletWithFormRef} asset={project} technologies={project?.technologies} href="/interactive-coding-tutorials" />
+              </Box>
+              {project?.slug && (
+                <RelatedContent
+                  slug={project.slug}
+                  type="PROJECT"
+                  extraQuerys={{}}
+                  technologies={project?.technologies}
+                  gridColumn="2 / span 10"
+                  maxWidth="1280px"
+                />
               )}
               <MktRecommendedCourses
+                mt="3rem"
                 marginTop="15px"
-                title={t('common:continue-learning', { technologies: project?.technologies.map((tech) => unSlugifyCapitalize(tech)).slice(0, 4).join(', ').replace(/-|_/g, ' ') })}
-                technologies={project?.technologies.join(',')}
+                technologies={project?.technologies}
               />
+              <MktEventCards isSmall hideDescription title={t('common:upcoming-workshops')} margin="4rem 0 31px 0" />
             </Box>
           </Box>
         </Flex>
@@ -322,26 +380,28 @@ function ProjectSlug({ project, markdown }) {
           display={{ base: 'none', lg: 'flex' }}
           gridColumn="9 / span 3"
           flexDirection="column"
-          backgroundColor={useColorModeValue('white', 'featuredDark')}
           margin="30px 0"
           minWidth={{ base: '100%', md: '300px' }}
           maxWidth="350px"
           height="fit-content"
           borderWidth="0px"
-          borderRadius="17px"
           overflow="hidden"
-          border={1}
-          borderStyle="solid"
-          borderColor={commonBorderColor}
         >
-          {project && project?.difficulty ? (
+          {project ? (
             <>
-              <Box d="flex" justifyContent="center">
-                <Icon icon="sideSupport" width="300px" height="70px" />
-              </Box>
-              <Box px="22px" pb="30px" pt="20px">
-                <TableInfo t={t} project={project} commonTextColor={commonTextColor} />
-              </Box>
+              <TabletWithForm hideCloneButton asset={project} technologies={project?.technologies} href="/interactive-coding-tutorials" />
+              <SupplementaryMaterial assets={project?.assets_related} />
+              {/* <DynamicCallToAction
+                assetId={project.id}
+                assetTechnologies={project.technologies?.map((item) => item?.slug)}
+                assetType="project"
+                placement="side"
+                marginTop="40px"
+              />
+              <PodcastCallToAction
+                placement="side"
+                marginTop="40px"
+              /> */}
             </>
           ) : (
             <Skeleton height="646px" width="100%" borderRadius="17px" />

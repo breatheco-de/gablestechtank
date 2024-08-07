@@ -1,41 +1,52 @@
+import { useRouter } from 'next/router';
 import { isWindow, removeURLParameter, setStorageItem } from '../../utils';
+import { log } from '../../utils/logging';
 import useAuth from '../hooks/useAuth';
 
 export const withGuard = (PassedComponent) => {
   function Auth(props) {
     const { isAuthenticated, isLoading } = useAuth();
     const isNotAuthenticated = !isLoading && isWindow && !isAuthenticated;
+    const router = useRouter();
     const tokenExists = isWindow && localStorage.getItem('accessToken');
+    const pageToRedirect = isWindow ? `/login${window.location.search}` : '/login';
 
     const query = isWindow && new URLSearchParams(window.location.search || '');
     const queryToken = isWindow && query.get('token')?.split('?')[0];
     const queryTokenExists = isWindow && queryToken !== undefined && queryToken.length > 0;
     const pathname = isWindow ? window.location.pathname : '';
     const cleanUrl = isWindow && removeURLParameter(window.location.href, 'token');
-    const requiresDefaultRedirect = pathname.includes('/cohort/') || pathname.includes('/syllabus/');
+    const defaultRedirect = '/choose-program';
+    const requiresDefaultRedirect = pathname.includes('/cohort/') && pathname.includes('/syllabus/');
+    const isDinamicPage = pathname.includes('/syllabus/');
 
     const redirectToLogin = () => {
       setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          setStorageItem('redirect', window.location.pathname);
+        if (isWindow) {
+          setStorageItem('redirect', router.asPath);
         }
-        window.location.href = '/login';
+        router.push(pageToRedirect);
       }, 150);
     };
 
-    if (!isLoading || queryTokenExists) {
+    if (!isLoading && isAuthenticated) {
+      if (isDinamicPage) {
+        return (
+          <PassedComponent {...props} />
+        );
+      }
       if (isNotAuthenticated) {
         if (requiresDefaultRedirect) {
-          localStorage.setItem('redirect', '/choose-program');
+          localStorage.setItem('redirect', defaultRedirect);
         } else {
           localStorage.setItem('redirect', pathname);
         }
-        window.location.href = '/login';
+        router.push(pageToRedirect);
       }
       if (queryTokenExists && isWindow) {
         localStorage.setItem('accessToken', queryToken);
         setTimeout(() => {
-          window.location.href = cleanUrl;
+          router.push(cleanUrl);
         }, 150);
       } else {
         return (
@@ -45,12 +56,17 @@ export const withGuard = (PassedComponent) => {
     }
     if (queryTokenExists === false) {
       if (!tokenExists && isWindow) {
+        if (isDinamicPage) {
+          return (
+            <PassedComponent {...props} />
+          );
+        }
         if (requiresDefaultRedirect) {
-          console.log('redirect choose-program setted');
-          localStorage.setItem('redirect', '/choose-program');
+          log(`redirect ${defaultRedirect} setted`);
+          localStorage.setItem('redirect', defaultRedirect);
           redirectToLogin();
         } else {
-          console.log('redirect setted');
+          log(`redirect to ${pathname} setted`);
           localStorage.setItem('redirect', pathname);
           redirectToLogin();
         }

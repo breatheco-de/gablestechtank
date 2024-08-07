@@ -1,0 +1,162 @@
+{
+  "course-content-text": "Prepárate para obtener un trabajo con nuestro syllabus",
+  "course-content-description": "Hemos ajustado nuestro contenido del curso con cientos de posiciones laborales para prepararte para una entrada exitosa en el mundo de la tecnología.",
+  "students-enrolled-count": "+{{count}} estudiantes inscritos",
+  "instructors-more": "+{{count}} instructores más",
+  "enroll-now-for-price": "Inscríbete ahora por {{price}} al mes",
+  "join-cohort": "Unirse ahora",
+  "join-cohort-description": "Únete a esta cohorte y comienza tu viaje en el bootcamp hoy",
+  "create-account-text": "Crea una cuenta y comienza tu viaje en el bootcamp hoy",
+  "live-bootcamp": "Bootcamp en vivo",
+  "free-course": "Curso Gratis",
+  "title-connectors": {
+    "learning": "Comienza a aprender",
+    "start": "Comienza una carrera en",
+    "end": "aprendiendo a tu propio ritmo",
+    "own-pace": "a tu propio ritmo"
+  },
+  "build-connector": {
+    "what-you-will": "Aprende construyendo",
+    "description": "Cuando aprendes a programar a tu propio ritmo, tener acceso a tutoriales en video, ejemplos de código y retroalimentación continua en tiempo real es crucial para tener éxito. Las tareas que abordarás se asemejarán estrechamente a las encontradas en una posición tecnológica del mundo real. Aquí tienes un vistazo de en qué estarás trabajando:",
+    "build": "proyectos de la vida real",
+    "link": "#pricing"
+  },
+  "why-learn-4geeks-connector": {
+    "why-learn-with": "¿Por qué aprender con",
+    "benefits-connector": "Aprender a tu propio ritmo puede ser desafiante, pero hemos desarrollado las herramientas para mantenerte motivado, evitar que te quedes atascado en problemas y acelerar tu proceso de aprendizaje."
+  },
+  "show-prices": {
+    "title": "¡Aprender a programar a tu propio ritmo es posible sin una gran inversión!",
+    "description": "Tus finanzas no deberían impedirte ingresar al mundo de la tecnología. Estamos aquí para apoyarte.<br/><br/>Elige entre el pago único o opciones de financiamiento flexibles. ¡Comienza a aprender hoy mismo!"
+  },
+  "rigobot": {
+    "title": "Conoce a Rigobot, nuestra IA interna diseñada para quienes aprenden solos",
+    "description": "4Geeks.com es la primera plataforma diseñada para maximizar el aprendizaje a tu propio ritmo. Únete a sesiones en vivo cuando tu puedas, obtén ayuda de forma inmediata con IA y pide mentorías uno a uno. Todo nuestro contenido es totalmente interactivo y con videos.",
+    "button": "Prueba Rigobot gratis",
+    "link": "https://codespaces.new/breatheco-de/exercise-postcard"
+  },
+  "featured-bullets": [
+    {
+      "title": "Obtén ayuda de nuestra IA entrenada internamente mientras aprendes a programar."
+    },
+    {
+      "title": "Únete a workshops semanales dónde desarrollarás proyectos de la vida real con expertos."
+    },
+    {
+      "title": "Aprende cómo crear tu curriculum, optimizar tu perfil de LinkedIn, prepárate para entrevistas técnicas y más.",
+      "hideOnPublic": true
+    },
+    {
+      "title": "Entra a <strong>sesiones de mentoría en vivo uno a uno</strong>."
+    }
+  ],
+  "why-learn-with-4geeks": {
+    "title": "¿Por qué debería aprender con 4Geeks?",
+    "description": "Únete a un líder comprobado en educación tecnológica: ¡Más de 9 años de excelencia reconocida, más de 4000 graduados exitosos, y una tasa de colocación laboral del 84%!"
+  },
+  "faq": [
+    {
+      "id": 1,
+      "title": "¿Aprenderé totalmente por mi cuenta?",
+      "description": "No, nuestro BootCamp solo está diseñado para aprender a tu propio ritmo y horario, pero sin dejar a un lado nuestra característica en vivo, ofreciendo diferentes actividades opcionales a las que puedes unirte cuando quieras. Tenemos muchos workshops en vivo sobre las tecnologías que estarás aprendiendo, que se hacen casi todos los días de la semana en diferentes horarios. Puedes agender mentorías privadas con un experto para que te ayude con los problemas que puedas tener en tu código o conceptos que no entiendas, y lo mejor de todo es que tu escoges el día y hora!"
+    },
+    {
+      "id": 2,
+      "title": "¿Cómo agendar mentorías?",
+      "description": "Para agendar una mentoría, debes acceder desde tu dashboard, seleccionar el tipo de mentoría que necesitas, escoger el mentor que más te guste o que esté disponible en el horario que desees y luego escoger el día y hora de la mentoría! Puedes ver más sobre cómo funcionan las mentorías <a href='https://4geeks.com/es/docs/knowledge-base-4geeks/sesiones-de-tutoria' target='_blank'>aqui</a>."
+    },
+    {
+      "id": 3,
+      "title": "¿Qué son las mentorías uno a uno?",
+      "description": "Las mentorías uno a uno son videollamadas de 30 minutos con un experto, este tiempo lo puedes aprovechar para pedir ayuda con algún ejercicio que no sabes como resolver, con ayuda para seguir avanzando con alguno de tus proyectos, o incluso para que te ayuden a entender algún concepto nuevo que no tienes muy claro."
+    },
+    {
+      "id": 4,
+      "title": "¿Qué tipo de ayuda recibo mientras estoy aprendiendo?",
+      "description": "Al entrar en cualquiera de nuestros programas de 4Geeks, obtienes acceso a nuestra comunidad en slack, en la que tenemos un canal especializado para ayudarte con problemas de código, con un tiempo de respuesta rápido. Además cuentas con la ayuda de Rigobot, nuestro modelo de inteligencia artificial entrenado para darte feedback de los ejercicios y proyectos que realizas, también puedes hablar en un chat con el, quien te dará una ayuda personalizada en base a lo que estas aprendiendo en el momento! Por otro lado, tienes acceso a las mentorías, que de agotarse, puedes solicitar más por un precio adicional para seguir utilizandolas"
+    },
+    {
+      "id": 5,
+      "title": "¿Necesito conocimientos previos?",
+      "description": "No, nuestros bootcamps están diseñados para enseñarte a utilizar todas las herramientas y empezar con lo más básico de cada tecnología antes de empezar con lo más avanzado."
+    }
+  ],
+  "features": {
+    "what-is-learnpack": {
+      "title": "¡Maximiza tu aprendizaje con LearnPack!",
+      "description": "LearnPack es nuestro software diseñado especialmente para autodidactas. Integra nuestro tutor de inteligencia artificial exclusivo, listo para abordar cualquier problema relacionado con el código y equipado con pruebas automatizadas para obtener retroalimentación inmediata, ¡permitiendo una experiencia de aprendizaje interactiva en cualquier momento!",
+      "button": "¡Empieza a aprender ahora!",
+      "link": "#pricing"
+    },
+    "showOnSignup": [
+      {
+        "type": "lesson",
+        "title": "Lecturas",
+        "qty": 45,
+        "icon": "book"
+      },
+      {
+        "type": "exercise",
+        "title": "Ejercicios interactivos",
+        "qty": 584,
+        "icon": "strength"
+      },
+      {
+        "type": "project",
+        "title": "Proyectos interactivos",
+        "qty": 28,
+        "icon": "laptop-code"
+      },
+      {
+        "type": "ai-feedback",
+        "title": "Feedback en tiempo real de IA",
+        "icon": "brain"
+      },
+      {
+        "type": "workshop",
+        "title": "Talleres todas las semanas",
+        "icon": "tv-live"
+      },
+      {
+        "type": "community",
+        "title": "Encuentros de la comunidad.",
+        "icon": "community"
+      }
+    ],
+    "list": [
+      {
+        "id": 1,
+        "icon": "rigobot-avatar",
+        "title": "Aprende con IA",
+        "description": "Nuestro inteligencia artificial revisa tu código para brindarte retroalimentación instantánea, te ayuda con los ejercicios ¡y mucho más!"
+      },
+      {
+        "id": 2,
+        "icon": "talking",
+        "title": "Mentorías uno a uno",
+        "description": "Accede a un paquete de sesiones mensuales de mentoría con nuestros expertos y añade sesiones adicionales según sea necesario."
+      },
+      {
+        "id": 3,
+        "icon": "community",
+        "title": "Aprende en comunidad",
+        "description": "Aprender junto a otros no solo es más divertido, sino que también te ayuda a progresar más rápido. Únete a nuestra comunidad activa de aprendizaje para recibir apoyo y colaboración."
+      }
+    ]
+  },
+  "certificate": {
+    "image": "/static/images/certificate-preview.webp",
+    "title": "Certifícate en tu tecnología favorita",
+    "description": "Tu certificado de 4Geeks abrirá puertas a oportunidades profesionales con nuestra extensa red de empresas en todo el mundo. Respaldado por instituciones internacionales, representa un estándar reconocido a nivel global, desbloqueando diversos caminos profesionales.",
+    "button": "Ver precios",
+    "button-link": "#pricing"
+  },
+  "job-section": {
+    "image": "/static/images/happy-male-with-laptop.png",
+    "title": "Prepárate para una carrera nueva",
+    "subtitle": "Mejora tu CV, portafolio, perfil de GitHub, y el perfil de tus redes sociales.",
+    "description": "Obtén acceso a ejercicios que simulan entrevistas de la vida real, obtenidas de empresas que están contratando activamente. Por ningún costo adicional para ti y sin quitarte nada del salario de la oferta de trabajo que obtengas.",
+    "button": "Únete ahora",
+    "button-link": "#pricing"
+  }
+}

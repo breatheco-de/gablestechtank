@@ -10,8 +10,8 @@ import useTranslation from 'next-translate/useTranslation';
 import Icon from './Icon';
 import Text from './Text';
 import AttendanceModal from './AttendanceModal';
-import { usePersistent } from '../hooks/usePersistent';
-import { isWindow } from '../../utils';
+import useCohortHandler from '../hooks/useCohortHandler';
+import { isValidDate, isWindow } from '../../utils';
 
 function ItemText({ text }) {
   return (
@@ -50,12 +50,14 @@ function ItemButton({
 }
 
 function TeacherSidebar({
-  title, user, students, width, sortedAssignments, currentCohortProps, setCurrentCohortProps,
+  title, user, students, width, sortedAssignments,
 }) {
   const { t } = useTranslation('dashboard');
   const { colorMode } = useColorMode();
   const [openAttendance, setOpenAttendance] = useState(false);
-  const [cohortSession] = usePersistent('cohortSession', {});
+  const { state } = useCohortHandler();
+  const { cohortSession } = state;
+
   // const accessToken = getStorageItem('accessToken');
   const router = useRouter();
   const { cohortSlug } = router.query;
@@ -66,10 +68,13 @@ function TeacherSidebar({
     en: format(new Date(), "'Today is' do 'of' MMMM"),
     es: format(new Date(), "'Hoy es' dd 'de' MMMM", { locale: es }),
   };
+  const formatKickoffDate = isValidDate(cohortSession?.kickoff_date)
+    ? new Date(cohortSession.kickoff_date)
+    : new Date();
 
   const kickoffDate = {
-    en: format(new Date(cohortSession.kickoff_date), 'eeee MMMM Mo'),
-    es: format(new Date(cohortSession.kickoff_date), "eeee dd 'de' MMMM", { locale: es }),
+    en: format(formatKickoffDate, 'eeee MMMM Mo'),
+    es: format(formatKickoffDate, "eeee dd 'de' MMMM", { locale: es }),
   };
 
   const greetings = {
@@ -162,8 +167,6 @@ function TeacherSidebar({
             onClose={() => setOpenAttendance(false)}
             title={t('attendance-modal.start-today-class')}
             // title="Start your today's class"
-            currentCohortProps={currentCohortProps}
-            setCurrentCohortProps={setCurrentCohortProps}
             message={greetings[router.locale]}
             width="100%"
           />
@@ -179,8 +182,6 @@ TeacherSidebar.propTypes = {
   students: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   width: PropTypes.string,
   sortedAssignments: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any]))),
-  currentCohortProps: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
-  setCurrentCohortProps: PropTypes.func,
 };
 
 TeacherSidebar.defaultProps = {
@@ -189,8 +190,6 @@ TeacherSidebar.defaultProps = {
   students: [],
   width: '100%',
   sortedAssignments: [],
-  currentCohortProps: {},
-  setCurrentCohortProps: () => {},
 };
 
 ItemText.propTypes = {

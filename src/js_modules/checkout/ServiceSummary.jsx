@@ -1,80 +1,46 @@
 /* eslint-disable react/prop-types */
-import { useState, forwardRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Avatar, Box, Button, Input, Link, useToast } from '@chakra-ui/react';
+import { Avatar, Box, Button, Link, Flex } from '@chakra-ui/react';
 import useTranslation from 'next-translate/useTranslation';
-import * as Yup from 'yup';
-import { Form, Formik } from 'formik';
 import bc from '../../common/services/breathecode';
 import useSignup from '../../common/store/actions/signupAction';
 import Heading from '../../common/components/Heading';
 import Icon from '../../common/components/Icon';
 import useStyle from '../../common/hooks/useStyle';
+import useAuth from '../../common/hooks/useAuth';
 import Text from '../../common/components/Text';
-import FieldForm from '../../common/components/Forms/FieldForm';
-import { formatPrice, number2DIgits, getStorageItem } from '../../utils';
-import DatePickerField from '../../common/components/Forms/DateField';
+import AcordionList from '../../common/components/AcordionList';
+import NextChakraLink from '../../common/components/NextChakraLink';
+import LoaderScreen from '../../common/components/LoaderScreen';
+import { formatPrice, getStorageItem } from '../../utils';
 import ModalInfo from '../moduleMap/modalInfo';
-import { usePersistent } from '../../common/hooks/usePersistent';
+import useCohortHandler from '../../common/hooks/useCohortHandler';
 import modifyEnv from '../../../modifyEnv';
-
-const CustomDateInput = forwardRef(({ value, onClick, ...rest }, ref) => {
-  const { t } = useTranslation('signup');
-  const { input } = useStyle();
-  const inputBorderColor = input.borderColor;
-
-  return (
-    <Input
-      {...rest}
-      placeholder={t('expiration-date')}
-      onClick={onClick}
-      height="50px"
-      borderRadius="3px"
-      borderColor={inputBorderColor}
-      ref={ref}
-      value={value}
-    />
-  );
-});
+import CardForm from './CardForm';
+import { SILENT_CODE } from '../../lib/types';
+import { reportDatalayer } from '../../utils/requests';
 
 function ServiceSummary({ service }) {
+  const { isAuthenticated } = useAuth();
   const BREATHECODE_HOST = modifyEnv({ queryString: 'host', env: process.env.BREATHECODE_HOST });
   const { t } = useTranslation('signup');
   const {
-    state, setSelectedService, setPaymentInfo,
+    state, setSelectedService, setIsSubmittingCard, setIsSubmittingPayment, getPaymentMethods, setPaymentStatus,
   } = useSignup();
-  const { selectedService, paymentInfo } = state;
+  const { selectedService, paymentMethods, paymentStatus, loader } = state;
   const [confirmationOpen, setConfirmationOpen] = useState(false);
-  const [purchaseCompleted, setPurchaseCompleted] = useState(false);
-  const [cohortSession] = usePersistent('cohortSession', {});
+  const { state: cohortState } = useCohortHandler();
+  const { cohortSession } = cohortState;
   const { backgroundColor, lightColor, hexColor, backgroundColor3 } = useStyle();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stateCard, setStateCard] = useState({
-    card_number: 0,
-    exp_month: 0,
-    exp_year: 0,
-    cvc: 0,
+  const [openDeclinedModal, setOpenDeclinedModal] = useState(false);
+  const [declinedModalProps, setDeclinedModalProps] = useState({
+    title: '',
+    description: '',
   });
+
   const redirectedFrom = getStorageItem('redirected-from');
-
-  const toast = useToast();
-
-  const infoValidation = Yup.object().shape({
-    owner_name: Yup.string()
-      .min(6, t('validators.owner_name-min'))
-      .required(t('validators.owner_name-required')),
-    card_number: Yup.string()
-      .min(16)
-      .max(20)
-      .required(t('validators.card_number-required')),
-    exp: Yup.string()
-      .min(4)
-      .required(t('validators.exp-required')),
-    cvc: Yup.string()
-      .min(3)
-      .max(3)
-      .required(t('validators.cvc-required')),
-  });
+  const isPaymentSuccess = paymentStatus === 'success';
 
   const dataToAssign = {
     service: service?.service?.slug,
@@ -88,139 +54,248 @@ function ServiceSummary({ service }) {
     bc.payment().service().payConsumable(dataToAssign)
       .then((res) => {
         if (res && res?.status < 400) {
-          setPurchaseCompleted(true);
+          reportDatalayer({
+            dataLayer: {
+              event: 'purchase',
+              ecommerce: {
+              // transaction_id: '12345',
+                affiliation: '4Geeks',
+                value: selectedService.priceDiscounted,
+                currency: 'USD',
+                items: [{
+                  item_name: selectedService.title,
+                  item_id: selectedService?.id,
+                  price: selectedService.priceDiscounted,
+                  item_brand: '4Geeks',
+                  item_category: service.serviceInfo.type,
+                  quantity: 1,
+                }],
+              },
+            } });
+          setPaymentStatus('success');
           setConfirmationOpen(false);
         }
       })
       .catch(() => {});
   };
-  const handleSubmit = (_, values) => {
-    bc.payment().addCard(values)
-      .then((resp) => {
-        if (resp) {
-          setConfirmationOpen(true);
-        }
-        if (resp?.status >= 400) {
-          toast({
-            position: 'top',
-            title: t('alert-message:card-error'),
-            description: t('alert-message:card-error-description'),
-            status: 'error',
-            duration: 7000,
-            isClosable: true,
-          });
-        }
-      })
-      .catch(() => {
-        toast({
-          position: 'top',
-          title: t('alert-message:card-error'),
-          description: t('alert-message:card-error-description'),
-          status: 'error',
-          duration: 7000,
-          isClosable: true,
-        });
+
+  const handlePaymentErrors = (data, actions = {}, callback = () => {}) => {
+    const silentCode = data?.silent_code;
+    setIsSubmittingPayment(false);
+    actions?.setSubmitting(false);
+    callback();
+    if (silentCode === SILENT_CODE.CARD_ERROR) {
+      setOpenDeclinedModal(true);
+      setDeclinedModalProps({
+        title: t('transaction-denied'),
+        description: t('card-declined'),
       });
+    }
+    if (SILENT_CODE.LIST_PROCESSING_ERRORS.includes(silentCode)) {
+      setOpenDeclinedModal(true);
+      setDeclinedModalProps({
+        title: t('transaction-denied'),
+        description: t('payment-not-processed'),
+      });
+    }
+    if (silentCode === SILENT_CODE.UNEXPECTED_EXCEPTION) {
+      setOpenDeclinedModal(true);
+      setDeclinedModalProps({
+        title: t('transaction-denied'),
+        description: t('payment-error'),
+      });
+    }
+  };
+
+  const handleSubmit = async (_, values) => {
+    if (selectedService?.id) {
+      reportDatalayer({
+        dataLayer: {
+          event: 'select_item',
+          item_list_name: service.serviceInfo.slug,
+          ecommerce: {
+            currency: 'USD',
+            items: [{
+              item_name: selectedService.title,
+              item_id: selectedService?.id,
+              price: selectedService.priceDiscounted,
+              item_brand: '4Geeks',
+              item_category: service.serviceInfo.type,
+              quantity: selectedService?.qty,
+            }],
+          },
+        },
+      });
+    }
+    const resp = await bc.payment().addCard(values);
+    const data = await resp.json();
+    setIsSubmittingCard(false);
+    if (resp.ok) {
+      reportDatalayer({
+        dataLayer: {
+          event: 'add_payment_info',
+          item_list_name: service.serviceInfo.slug,
+          ecommerce: {
+            currency: 'USD',
+            payment_type: 'Credit Card',
+            items: [
+              {
+                item_id: selectedService?.id,
+                item_name: selectedService?.title,
+                item_brand: '4Geeks',
+                item_category: service.serviceInfo.type,
+                price: selectedService?.priceDiscounted,
+                quantity: selectedService?.qty,
+              },
+            ],
+          },
+        } });
+      setConfirmationOpen(true);
+    } else {
+      setOpenDeclinedModal(true);
+      handlePaymentErrors(data, _);
+    }
+  };
+
+  const handleSelectService = (item) => {
+    setSelectedService(item);
   };
 
   useEffect(() => {
-    if (service.list.length === 1) {
-      setSelectedService(service.list[0]);
+    if (service?.academy) getPaymentMethods(service.academy.id);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (service?.list?.length === 1) {
+      handleSelectService(service.list[0]);
+    }
+    if (service?.list?.length > 0) {
+      reportDatalayer({
+        dataLayer: {
+          event: 'view_item_list',
+          item_list_name: service.serviceInfo.slug,
+          ecommerce: {
+            currency: 'USD',
+            items: service?.list.map((item) => ({
+              item_name: item?.title,
+              item_id: item?.id,
+              price: item?.priceDiscounted,
+              item_brand: '4Geeks',
+              item_category: service?.serviceInfo?.type,
+              quantity: item?.qty,
+            })),
+          },
+        } });
     }
   }, [service]);
 
-  return (
-    <Box
-      display="flex"
-      flexDirection={{ base: 'column', md: 'row' }}
-      gridGap="30px"
-      justifyContent="center"
-      mb="1rem"
-    >
-      {purchaseCompleted
-        ? (
-          <Box display="flex" justifyContent="center" flexDirection="column" gridGap="24px">
-            <Box display="flex" flexDirection="column" gridGap="12px" alignItems="center" padding="14px 23px" background={backgroundColor} borderRadius="15px">
-              <Avatar src={`${BREATHECODE_HOST}/static/img/avatar-8.png`} border="3px solid #25BF6C" width="91px" height="91px" borderRadius="50px" />
-              <Box fontSize="26px" fontWeight={700} width={{ base: 'auto', md: '75%' }} textAlign="center">
-                {t('consumables.purchase-completed-title')}
-              </Box>
-            </Box>
+  const onSubmitCard = (values, actions, stateCard) => {
+    setIsSubmittingPayment(true);
+    setIsSubmittingCard(true);
+    const monthAndYear = values.exp?.split('/');
+    const expMonth = monthAndYear[0];
+    const expYear = monthAndYear[1];
 
-            <Box display="flex" justifyContent="space-between" gridGap="10px" padding="14px 10%" background={backgroundColor} borderRadius="15px">
-              <Box display="flex" flexDirection="column" gridGap="12px">
-                <Box color="yellow.default" fontSize="16px" textTransform="uppercase" fontWeight={900}>
-                  {t('consumables.you-have-received')}
-                </Box>
-                <Box display="flex" alignItems="center" gridGap="12px">
-                  <Box>
-                    <Box background="yellow.default" minWidth="50px" borderRadius="50px" width="fit-content" padding="10px">
-                      <Icon icon="idea" width="40px" height="40px" />
-                    </Box>
-                  </Box>
-                  <Box fontSize="21px" fontWeight={700}>
-                    {t(`${service.serviceInfo.type}-bundle-title`)}
-                  </Box>
-                </Box>
-              </Box>
-              <Box display="flex" flexDirection="column" justifyContent="center" gridGap="0px" fontWeight={700} lineHeight="32px" background="blue.default" alignItems="center" padding="10px 15px" borderRadius="11px" color="white">
-                <Box fontSize="38px">{selectedService?.qty}</Box>
-                <Box fontSize="28px">
-                  {service.serviceInfo.type === 'mentorship' ? 'sessions' : 'events'}
-                </Box>
-              </Box>
-            </Box>
-            <Box display="flex" gridGap="12px" margin="2rem auto 0 auto" alignItems="center">
-              <Link variant="default" onClick={() => localStorage.removeItem('redirected-from')} href={redirectedFrom || cohortSession?.selectedProgramSlug || ''}>
-                {t('common:go-back')}
-              </Link>
-              <Icon icon="longArrowRight" width="24px" height="10px" color={hexColor.blueDefault} />
+    const allValues = {
+      card_number: stateCard.card_number,
+      exp_month: expMonth,
+      exp_year: expYear,
+      cvc: values.cvc,
+    };
+    handleSubmit(actions, allValues);
+  };
+
+  return (
+    <Box mb="1rem">
+
+      {isPaymentSuccess ? (
+        <Box display="flex" justifyContent="center" flexDirection="column" gridGap="24px">
+          <Box display="flex" flexDirection="column" gridGap="12px" alignItems="center" padding="14px 23px" background={backgroundColor} borderRadius="15px">
+            <Avatar src={`${BREATHECODE_HOST}/static/img/avatar-8.png`} border="3px solid #25BF6C" width="91px" height="91px" borderRadius="50px" />
+            <Box fontSize="26px" fontWeight={700} width={{ base: 'auto', md: '75%' }} textAlign="center">
+              {t('consumables.purchase-completed-title')}
             </Box>
           </Box>
-        )
-        : (
-          <>
-            <Box display="flex" flexDirection="column" flex={0.5} gridGap="24px">
-              <Box display="flex" flexDirection="column" gridGap="3rem" background={backgroundColor} p={{ base: '20px 22px', md: '14px 23px' }} height="100%" borderRadius="15px">
-                <Box
-                  display="flex"
-                  flexDirection="column"
-                  w="100%"
-                  height="fit-content"
-                  p="11px 14px"
-                  gridGap="8px"
-                  borderRadius="14px"
-                >
-                  <Heading size="16px" fontWeight={900} color="yellow.default" textTransform="uppercase">
-                    {t('getting-for')}
-                  </Heading>
-                  <Box display="flex" gridGap="12px" alignItems="center">
-                    <Box display="flex" flexDirection="column">
-                      <Box
-                        background="yellow.default"
-                        borderRadius="50px"
-                        width="fit-content"
-                        padding="10px"
-                      >
-                        <Icon icon="idea" width="40px" height="40px" color="#fff" />
-                      </Box>
-                    </Box>
-                    <Box display="flex" width="100%" flexDirection="column" gridGap="7px">
-                      <Heading size="21px" width="70%">
-                        {t(`${service.serviceInfo.type}-bundle-title`)}
-                      </Heading>
-                    </Box>
+
+          <Box display="flex" justifyContent="space-between" gridGap="10px" padding="14px 10%" background={backgroundColor} borderRadius="15px">
+            <Box display="flex" flexDirection="column" gridGap="12px">
+              <Box color="yellow.default" fontSize="16px" textTransform="uppercase" fontWeight={900}>
+                {t('consumables.you-have-received')}
+              </Box>
+              <Box display="flex" alignItems="center" gridGap="12px">
+                <Box>
+                  <Box background="yellow.default" minWidth="50px" borderRadius="50px" width="fit-content" padding="10px">
+                    <Icon icon="idea" width="40px" height="40px" />
                   </Box>
                 </Box>
+                <Box fontSize="21px" fontWeight={700}>
+                  {t(`${service.serviceInfo.type}-bundle-title`)}
+                </Box>
               </Box>
+            </Box>
+            <Box display="flex" flexDirection="column" justifyContent="center" gridGap="0px" fontWeight={700} lineHeight="32px" background="blue.default" alignItems="center" padding="10px 15px" borderRadius="11px" color="white">
+              <Box fontSize="38px">{selectedService?.qty}</Box>
+              <Box fontSize="28px">
+                {service.serviceInfo.type === 'mentorship' ? 'sessions' : 'events'}
+              </Box>
+            </Box>
+          </Box>
+          <Box display="flex" gridGap="12px" margin="2rem auto 0 auto" alignItems="center">
+            <Link variant="default" onClick={() => localStorage.removeItem('redirected-from')} href={redirectedFrom || cohortSession?.selectedProgramSlug || ''}>
+              {t('common:go-back')}
+            </Link>
+            <Icon icon="longArrowRight" width="24px" height="10px" color={hexColor.blueDefault} />
+          </Box>
+        </Box>
+      ) : (
+        <>
+          <Box display="flex" flexDirection="column" gridGap="3rem" background={backgroundColor} p={{ base: '20px 22px', md: '14px 23px' }} borderRadius="15px">
+            <Box
+              display="flex"
+              flexDirection="column"
+              w="100%"
+              height="fit-content"
+              p="11px 14px"
+              gridGap="8px"
+              borderRadius="14px"
+            >
+              <Heading size="16px" fontWeight={900} color="yellow.default" textTransform="uppercase">
+                {t('getting-for')}
+              </Heading>
+              <Box display="flex" gridGap="12px" alignItems="center">
+                <Box display="flex" flexDirection="column">
+                  <Box
+                    background="yellow.default"
+                    borderRadius="50px"
+                    width="fit-content"
+                    padding="10px"
+                  >
+                    <Icon icon="idea" width="40px" height="40px" color="#fff" />
+                  </Box>
+                </Box>
+                <Box display="flex" width="100%" flexDirection="column" gridGap="7px">
+                  <Heading size="21px" width="70%">
+                    {t(`${service.serviceInfo.type}-bundle-title`)}
+                  </Heading>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+          <Box
+            display="flex"
+            flexDirection={{ base: 'column', md: 'row' }}
+            gridGap="30px"
+            justifyContent="center"
+          >
+            <Box display="flex" flexDirection="column" flex={0.5} gridGap="24px">
               {service?.list?.length > 0 && (
                 <Box display="flex" flexDirection="column" gridGap="10px" padding="14px 23px" background={backgroundColor} borderRadius="15px">
                   <Box height="40px" display="flex" flexDirection={{ base: 'column', sm: 'row' }} margin={{ base: '0 0 30px 0', sm: '0' }} justifyContent="space-between" alignItems="center">
-                    <Heading as="span" size="21px">
+                    <Heading as="span" size="xsm">
                       {t('consumables.select-bundle')}
                     </Heading>
                     {selectedService?.id && service.list.length > 1 && (
-                      <Button fontSize="14px" variant="link" onClick={() => setSelectedService({})}>
+                      <Button fontSize="14px" variant="link" onClick={() => handleSelectService({})}>
                         {t('consumables.change-my-selection')}
                       </Button>
                     )}
@@ -233,7 +308,7 @@ function ServiceSummary({ service }) {
                           key={`${item?.slug}-${item?.title}`}
                           display="flex"
                           onClick={() => {
-                            setSelectedService(item);
+                            handleSelectService(item);
                           }}
                           flexDirection="row"
                           width="100%"
@@ -361,126 +436,78 @@ function ServiceSummary({ service }) {
               )}
             </Box>
             <Box display="flex" flexDirection="column" flex={0.5}>
-              <Box background={backgroundColor} p={{ base: '22px', md: '14px 23px' }} borderRadius="15px">
-                <Heading
-                  size="xsm"
-                  p="0 0 12px 0"
-                >
-                  {t('select-payment-plan')}
-                </Heading>
-                <Box display="flex" flexDirection="column" gridGap="10px">
-                  <Formik
-                    initialValues={{
-                      owner_name: '',
-                      card_number: '',
-                      exp: '',
-                      cvc: '',
-                    }}
-                    onSubmit={(values, actions) => {
-                      const expMonthValue = values.exp?.getMonth() || 0;
-                      const expYearValue = values.exp?.getFullYear() || 0;
-
-                      setIsSubmitting(true);
-                      const expMonth = number2DIgits(expMonthValue + 1);
-                      const expYear = number2DIgits(expYearValue - 2000);
-
-                      const allValues = {
-                        card_number: stateCard.card_number,
-                        exp_month: expMonth,
-                        exp_year: expYear,
-                        cvc: values.cvc,
-                      };
-                      handleSubmit(actions, allValues);
-                    }}
-                    validationSchema={infoValidation}
-                  >
-                    {() => (
-                      <Form
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gridGap: '22px',
-                        }}
-                      >
-                        <Box display="flex" gridGap="18px">
-                          <FieldForm
-                            type="text"
-                            name="owner_name"
-                            externValue={paymentInfo.owner_name}
-                            handleOnChange={(e) => {
-                              setPaymentInfo('owner_name', e.target.value);
-                              setStateCard({ ...stateCard, owner_name: e.target.value });
-                            }}
-                            pattern="[A-Za-z ]*"
-                            label={t('owner-name')}
-                          />
-                        </Box>
-                        <Box display="flex" gridGap="18px">
-                          <FieldForm
-                            type="text"
-                            name="card_number"
-                            externValue={paymentInfo.card_number}
-                            handleOnChange={(e) => {
-                              const value = e.target.value.replace(/\s/g, '').replace(/[^0-9]/g, '');
-                              const newValue = value.replace(/(.{4})/g, '$1 ').trim();
-                              e.target.value = newValue.slice(0, 19);
-                              setPaymentInfo('card_number', e.target.value);
-                              setStateCard({ ...stateCard, card_number: newValue.replaceAll(' ', '').slice(0, 16) });
-                            }}
-                            pattern="[0-9]*"
-                            label={t('card-number')}
-                          />
-                        </Box>
-                        <Box display="flex" gridGap="18px">
-                          <Box display="flex" gridGap="18px" flex={1}>
-                            <Box display="flex" flexDirection="column" flex={0.5}>
-                              <DatePickerField
-                                type="text"
-                                name="exp"
-                                wrapperClassName="datePicker"
-                                onChange={(date) => {
-                                  setPaymentInfo('exp', date);
-                                }}
-                                customInput={<CustomDateInput />}
-                                dateFormat="MM/yy"
-                                showMonthYearPicker
-                              />
-                            </Box>
-                            <FieldForm
-                              style={{ flex: 0.5 }}
-                              type="text"
-                              name="cvc"
-                              externValue={paymentInfo.cvc}
-                              maxLength={3}
-                              handleOnChange={(e) => {
-                                const value = e.target.value.replace(/\s/g, '').replace(/[^0-9]/g, '');
-                                const newValue = value.replace(/(.{3})/g, '$1 ').trim();
-                                e.target.value = newValue.slice(0, 3);
-
-                                setPaymentInfo('cvc', e.target.value);
+              {loader.paymentMethods ? (
+                <LoaderScreen />
+              ) : (
+                <Box background={backgroundColor} p={{ base: '22px', md: '14px 23px' }} borderRadius="15px">
+                  <Heading size="xsm">
+                    {t('payment-methods')}
+                  </Heading>
+                  <Flex flexDirection="column" gridGap="4px" width="100%" mt="1rem">
+                    <AcordionList
+                      width="100%"
+                      list={paymentMethods.map((method) => {
+                        if (!method.is_credit_card) {
+                          return {
+                            ...method,
+                            onClick: (e) => {
+                              setTimeout(() => {
+                                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 100);
+                            },
+                            description: (
+                              <Box padding="0 17px">
+                                <Text
+                                  size="md"
+                                  className="method-description"
+                                  sx={{
+                                    a: {
+                                      color: hexColor.blueDefault,
+                                    },
+                                    'a:hover': {
+                                      opacity: 0.7,
+                                    },
+                                  }}
+                                  dangerouslySetInnerHTML={{ __html: method.description }}
+                                />
+                                {method.third_party_link && (
+                                  <Text mt="10px" color={hexColor.blueDefault}>
+                                    <NextChakraLink target="_blank" href={method.third_party_link}>
+                                      {t('click-here')}
+                                    </NextChakraLink>
+                                  </Text>
+                                )}
+                              </Box>
+                            ),
+                          };
+                        }
+                        return {
+                          ...method,
+                          description: (
+                            <CardForm
+                              modalCardErrorProps={{
+                                disableTryAgain: true,
+                                openDeclinedModal,
+                                setOpenDeclinedModal,
+                                declinedModalProps,
                               }}
-                              pattern="[0-9]*"
-                              label={t('cvc')}
+                              onSubmit={onSubmitCard}
                             />
-                          </Box>
-                        </Box>
-
-                        <Button
-                          type="submit"
-                          width="100%"
-                          variant="default"
-                          isDisabled={!selectedService?.id}
-                          isLoading={isSubmitting}
-                          height="40px"
-                          mt="0"
-                        >
-                          {t('common:proceed-to-payment')}
-                        </Button>
-                      </Form>
-                    )}
-                  </Formik>
+                          ),
+                        };
+                      })}
+                      paddingButton="10px 17px"
+                      unstyled
+                      gridGap="0"
+                      containerStyles={{
+                        gridGap: '8px',
+                        allowToggle: true,
+                      }}
+                      descriptionStyle={{ padding: '10px 0 0 0' }}
+                    />
+                  </Flex>
                 </Box>
-              </Box>
+              )}
             </Box>
             <ModalInfo
               isOpen={confirmationOpen}
@@ -506,7 +533,7 @@ function ServiceSummary({ service }) {
                           <Icon icon="idea" width="40px" height="40px" />
                         </Box>
                       </Box>
-                      <Box fontSize="21px" fontWeight={700}>
+                      <Box size="xsm" fontWeight={700}>
                         {t(`${service.serviceInfo.type}-bundle-title`)}
                       </Box>
                     </Box>
@@ -523,14 +550,15 @@ function ServiceSummary({ service }) {
               handlerText={t('common:confirm')}
               actionHandler={() => handlePayConsumable()}
               onClose={() => {
-                setIsSubmitting(false);
+                setIsSubmittingPayment(false);
                 setConfirmationOpen(false);
               }}
               closeButtonStyles={{ borderRadius: '3px', color: '#0097CD', borderColor: '#0097CD' }}
               closeButtonVariant="outline"
             />
-          </>
-        )}
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

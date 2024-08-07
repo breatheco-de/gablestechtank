@@ -1,9 +1,11 @@
 {
   "login": "Login",
+  "get-started": "Get Started",
   "logout": "Logout",
   "language": "Language",
   "my-profile": "My Profile",
-  "start-coding": "Start Coding",
+  "course-details": "Course details",
+  "upgrade-experience": "Upgrade Experience",
   "ITEMS": [
     {
       "label": "Dashboard",
@@ -11,10 +13,59 @@
       "href": "{{selectedProgramSlug}}"
     },
     {
-      "label": "About us",
-      "href": "/about-us"
+      "id": "bootcamps",
+      "label": "Self-paced",
+      "icon": "graduationCap",
+      "description": "Explore our extensive collection of courses designed to help you master various subjects and skills. Whether you're a beginner or an advanced learner, there's something here for everyone.",
+      "asPath": "/bootcamps",
+      "subMenu": [],
+      "position": 1
     },
     {
+      "id": "academy",
+      "label": "Bootcamp",
+      "href": "https://4geeksacademy.com",
+      "hide_on_auth": true,
+      "position": 2
+    },
+    {
+      "id": "events",
+      "label": "Learn live",
+      "icon": "calendar",
+      "private": false,
+      "description": "Join us for our free workshops, webinars, and other events to learn more about our programs and get started on your journey to becoming a developer.",
+      "subMenu": [
+        {
+          "label": "Live events",
+          "slug": "live-events",
+          "asPath": "/workshops",
+          "icon": "live-event",
+          "description": "",
+          "subMenu": [
+            {
+              "href": "/workshops",
+              "label": "Upcoming live events"
+            }
+          ]
+        },
+        {
+          "label": "Podcast",
+          "slug": "podcast",
+          "asPath": "/workshops",
+          "icon": "microphone",
+          "description": "A tech-culture podcast where you learn to fight the enemies to become a successful professional in tech.",
+          "subMenu": [
+            {
+              "href": "/podcast",
+              "label": "List all episodes"
+            }
+          ]
+        }
+      ],
+      "position": 3
+    },
+    {
+      "id": "read",
       "label": "Learning library",
       "icon": "book",
       "description": "For all the self-taught geeks out there, here is our content library with most of the learning materials we have produced throughout the years.",
@@ -38,7 +89,6 @@
           "slug": "exercises",
           "subLabel": "",
           "description": "Curated list of small interactive and incremental exercises you can take to get better at any coding skill.",
-          "href": "/interactive-exercises",
           "subMenu": [
             {
               "href": "/interactive-exercises",
@@ -49,7 +99,6 @@
         {
           "label": "Build projects",
           "slug": "projects",
-          "href": "/interactive-coding-tutorials",
           "description": "Curated section of projects to build while learning with simple instructions, videos, solutions, and more.",
           "subMenu": [
             {
@@ -61,7 +110,6 @@
         {
           "label": "How to's?",
           "slug": "how-tos",
-          "href": "/how-to",
           "description": "Guides on different topics related to the technologies that we teach in our courses",
           "subMenu": [
             {
@@ -70,22 +118,29 @@
             }
           ]
         }
-      ]
+      ],
+      "position": 4
+    }
+  ],
+
+  "white-label-version-items": [
+    {
+      "label": "Dashboard",
+      "private": true,
+      "href": "{{selectedProgramSlug}}"
     },
     {
-      "label": "Social & live learning",
-      "slug": "social-and-live-learning",
-      "icon": "onlinePeople",
-      "disabled": false,
-      "description": "The most efficient way to learn: Join a cohort with classmates just like you, live streams, impromptu coding sessions, live tutorials with real experts, and stay motivated.",
-      "asPath": "/read",
-      "subMenu": [],
-      "hide_on_auth": true
-    },
-    {
-      "label": "Coding Bootcamp",
-      "href": "https://4geeksacademy.com",
-      "hide_on_auth": true
+      "label": "More ways of learning",
+      "private": true,
+      "icon": "4GeeksIcon",
+      "image": "/static/images/4geeks.png",
+      "description": "Miami Tech Works is part of 4Geeks learning community. Go to 4Geeks.com for more interactive lessons, workshops, mentorhips, and learning with AI.",
+      "with_popover": {
+        "active": true,
+        "title": "Take me to 4Geeks.com",
+        "link": "https://4geeks.com"
+      },
+      "subMenu": []
     }
   ],
   "white-label-version-items": [

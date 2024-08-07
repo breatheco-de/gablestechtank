@@ -1,15 +1,14 @@
 /* eslint-disable react/jsx-no-useless-fragment */
 /* eslint-disable no-param-reassign */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import useTranslation from 'next-translate/useTranslation';
 import {
-  Box, useColorModeValue, Skeleton, ModalOverlay, ModalContent, ModalCloseButton, Button, Tooltip, Modal,
+  Box, useColorModeValue, ModalOverlay, ModalContent, ModalCloseButton, Button, Tooltip, Modal,
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Icon from '../../common/components/Icon';
-import { cleanObject, getExtensionName, unSlugifyCapitalize } from '../../utils';
+import { cleanObject, getExtensionName } from '../../utils';
 import Link from '../../common/components/NextChakraLink';
 import MarkDownParser from '../../common/components/MarkDownParser';
 import TagCapsule from '../../common/components/TagCapsule';
@@ -17,32 +16,30 @@ import getMarkDownContent from '../../common/components/MarkDownParser/markdown'
 import { MDSkeleton } from '../../common/components/Skeleton';
 import GridContainer from '../../common/components/GridContainer';
 import MktRecommendedCourses from '../../common/components/MktRecommendedCourses';
-import redirectsFromApi from '../../../public/redirects-from-api.json';
 import MktSideRecommendedCourses from '../../common/components/MktSideRecommendedCourses';
+// import DynamicCallToAction from '../../common/components/DynamicCallToAction';
+// import PodcastCallToAction from '../../common/components/PodcastCallToAction';
 import IpynbHtmlParser from '../../common/components/IpynbHtmlParser';
 import useStyle from '../../common/hooks/useStyle';
-import { parseQuerys } from '../../utils/url';
 import Heading from '../../common/components/Heading';
-import { ORIGIN_HOST, WHITE_LABEL_ACADEMY } from '../../utils/variables';
+import { ORIGIN_HOST, excludeCagetoriesFor } from '../../utils/variables';
+import { getCacheItem, setCacheItem } from '../../utils/requests';
+import RelatedContent from '../../common/components/RelatedContent';
+import MktEventCards from '../../common/components/MktEventCards';
 
-export const getStaticPaths = async ({ locales }) => {
-  const querys = parseQuerys({
-    asset_type: 'LESSON,ARTICLE',
-    visibility: 'PUBLIC',
-    status: 'PUBLISHED',
-    exclude_category: 'how-to,como',
-    academy: WHITE_LABEL_ACADEMY,
-    limit: 2000,
+export const getStaticPaths = async () => {
+  const assetList = await import('../../lib/asset-list.json');
+  const data = assetList.lessons;
+
+  const paths = data.flatMap((res) => {
+    const lang = res?.lang === 'us' ? 'en' : res?.lang;
+    return ({
+      params: {
+        slug: res.slug,
+      },
+      locale: lang,
+    });
   });
-  const resp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset${querys}`);
-  const data = await resp.json();
-
-  const paths = data.results.flatMap((res) => locales.map((locale) => ({
-    params: {
-      slug: res.slug,
-    },
-    locale,
-  })));
 
   return {
     fallback: false,
@@ -53,132 +50,139 @@ export const getStaticPaths = async ({ locales }) => {
 export const getStaticProps = async ({ params, locale, locales }) => {
   const { slug } = params;
 
-  const response = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}`);
-  const lesson = await response.json();
+  try {
+    let lesson;
+    let markdown = '';
+    let ipynbHtml = {};
+    lesson = await getCacheItem(slug);
+    const langPrefix = locale === 'en' ? '' : `/${locale}`;
 
-  const engPrefix = {
-    us: 'en',
-    en: 'en',
-  };
+    if (!lesson) {
+      console.log(`${slug} not found on cache`);
+      const assetList = await import('../../lib/asset-list.json')
+        .then((res) => res.default)
+        .catch(() => []);
+      lesson = assetList.lessons.find((l) => l?.slug === slug);
 
-  const urlPathname = lesson?.readme_url ? lesson?.readme_url.split('https://github.com')[1] : null;
-  const pathnameWithoutExtension = urlPathname ? urlPathname.split('.ipynb')[0] : null;
-  const extension = urlPathname ? urlPathname.split('.').pop() : null;
-  const translatedExtension = (lesson?.lang === 'us' || lesson?.lang === null) ? '' : `.${lesson?.lang}`;
-  const finalPathname = `https://colab.research.google.com/github${pathnameWithoutExtension}${translatedExtension}.${extension}`;
+      const engPrefix = {
+        us: 'en',
+        en: 'en',
+      };
 
-  const isCurrenLang = locale === engPrefix[lesson?.lang] || locale === lesson?.lang;
+      const isCurrenLang = locale === engPrefix[lesson?.lang] || locale === lesson?.lang;
+      if (!['ARTICLE', 'LESSON'].includes(lesson?.asset_type) || !isCurrenLang) {
+        return {
+          notFound: true,
+        };
+      }
+      const exensionName = getExtensionName(lesson.readme_url);
 
-  if (response?.status >= 400 || response?.status_code >= 400 || !['ARTICLE', 'LESSON'].includes(lesson?.asset_type) || !isCurrenLang) {
+      if (exensionName !== 'ipynb') {
+        const resp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.md`);
+        if (resp.status >= 400) {
+          return {
+            notFound: true,
+          };
+        }
+        markdown = await resp.text();
+      } else {
+        const ipynbIframe = `${process.env.BREATHECODE_HOST}/v1/registry/asset/preview/${slug}`;
+        const ipynbHtmlUrl = `${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.html`;
+        const resp = await fetch(ipynbHtmlUrl);
+
+        ipynbHtml = {
+          html: await resp.text(),
+          iframe: ipynbIframe,
+          statusText: resp.statusText,
+          status: resp.status,
+        };
+      }
+      await setCacheItem(slug, { ...lesson, markdown, ipynbHtml });
+    } else {
+      markdown = lesson.markdown;
+      ipynbHtml = lesson.ipynbHtml;
+    }
+
+    const urlPathname = lesson?.readme_url ? lesson?.readme_url.split('https://github.com')[1] : null;
+    const pathnameWithoutExtension = urlPathname ? urlPathname.split('.ipynb')[0] : null;
+    const extension = urlPathname ? urlPathname.split('.').pop() : null;
+    const translatedExtension = (lesson?.lang === 'us' || lesson?.lang === null) ? '' : `.${lesson?.lang}`;
+    const finalPathname = `https://colab.research.google.com/github${pathnameWithoutExtension}${translatedExtension}.${extension}`;
+    const { title, description, translations } = lesson;
+    const translationInEnglish = translations?.en || translations?.us;
+
+    // if exists translation object but not includes the origin language include it
+    const translationArray = [
+      {
+        value: 'en',
+        lang: 'en',
+        slug: (lesson?.lang === 'en' || lesson?.lang === 'us') ? lesson?.slug : translationInEnglish,
+        link: `/lesson/${(lesson?.lang === 'en' || lesson?.lang === 'us') ? lesson?.slug : translationInEnglish}`,
+      },
+      {
+        value: 'es',
+        lang: 'es',
+        slug: lesson?.lang === 'es' ? lesson.slug : translations?.es,
+        link: `/es/lesson/${lesson?.lang === 'es' ? lesson.slug : translations?.es}`,
+      },
+    ].filter((item) => item?.slug !== undefined);
+
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      name: lesson?.title,
+      description: lesson?.description,
+      url: `${ORIGIN_HOST}${langPrefix}/lesson/${slug}`,
+      image: lesson?.preview || `${ORIGIN_HOST}/static/images/4geeks.png`,
+      datePublished: lesson?.published_at,
+      dateModified: lesson?.updated_at,
+      author: lesson?.author ? {
+        '@type': 'Person',
+        name: `${lesson?.author?.first_name} ${lesson?.author?.last_name}`,
+      } : null,
+      keywords: lesson?.seo_keywords,
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${ORIGIN_HOST}${langPrefix}/lesson/${slug}`,
+      },
+    };
+
+    const cleanedStructuredData = cleanObject(structuredData);
+
+    return {
+      props: {
+        seo: {
+          title,
+          description: description || '',
+          image: cleanedStructuredData.image,
+          pathConnector: '/lesson',
+          url: `/lesson/${slug}`,
+          slug,
+          type: 'article',
+          card: 'large',
+          translations: translationArray,
+          locales,
+          locale,
+          keywords: lesson?.seo_keywords || '',
+          publishedTime: lesson?.created_at || '',
+          modifiedTime: lesson?.updated_at || '',
+        },
+        lesson: {
+          ...lesson,
+          collab_url: finalPathname,
+          structuredData: cleanedStructuredData,
+        },
+        translations: translationArray,
+        markdown,
+        ipynbHtml,
+      },
+    };
+  } catch (error) {
+    console.error(`Error fetching page type LESSON for /${locale}/lesson/${slug}`, error);
     return {
       notFound: true,
     };
   }
-
-  const ogUrl = {
-    en: `/lesson/${slug}`,
-    us: `/lesson/${slug}`,
-  };
-
-  const { title, description, translations } = lesson;
-  const translationsExists = Object.keys(translations).length > 0;
-
-  const exensionName = getExtensionName(lesson.readme_url);
-  let markdown = '';
-  let ipynbHtml = '';
-
-  if (exensionName !== 'ipynb') {
-    const resp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.md`);
-    if (resp.status >= 400) {
-      return {
-        notFound: true,
-      };
-    }
-    markdown = await resp.text();
-  } else {
-    const ipynbIframe = `${process.env.BREATHECODE_HOST}/v1/registry/asset/preview/${slug}`;
-    const ipynbHtmlUrl = `${process.env.BREATHECODE_HOST}/v1/registry/asset/${slug}.html`;
-    const resp = await fetch(ipynbHtmlUrl);
-
-    ipynbHtml = {
-      html: await resp.text(),
-      iframe: ipynbIframe,
-      statusText: resp.statusText,
-      status: resp.status,
-    };
-  }
-  const translationArray = [
-    {
-      value: 'us',
-      lang: 'en',
-      slug: translations?.us,
-      link: `/lesson/${translations?.us}`,
-    },
-    {
-      value: 'en',
-      lang: 'en',
-      slug: translations?.en,
-      link: `/lesson/${translations?.en}`,
-    },
-    {
-      value: 'es',
-      lang: 'es',
-      slug: translations?.es,
-      link: `/es/lesson/${translations?.es}`,
-    },
-  ].filter((item) => translations?.[item?.value] !== undefined);
-
-  const eventStructuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    name: lesson?.title,
-    description: lesson?.description,
-    url: `${ORIGIN_HOST}/${slug}`,
-    image: `${ORIGIN_HOST}/thumbnail?slug=${slug}`,
-    datePublished: lesson?.published_at,
-    dateModified: lesson?.updated_at,
-    author: lesson?.author ? {
-      '@type': 'Person',
-      name: `${lesson?.author?.first_name} ${lesson?.author?.last_name}`,
-    } : null,
-    keywords: lesson?.seo_keywords,
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `${ORIGIN_HOST}/${slug}`,
-    },
-  };
-
-  const cleanedStructuredData = cleanObject(eventStructuredData);
-
-  return {
-    props: {
-      seo: {
-        title,
-        description: description || '',
-        image: `${ORIGIN_HOST}/thumbnail?slug=${slug}`,
-        pathConnector: translationsExists ? '/lesson' : `/lesson/${slug}`,
-        url: ogUrl.en || `/${locale}/lesson/${slug}`,
-        slug,
-        type: 'article',
-        card: 'large',
-        translations,
-        locales,
-        locale,
-        keywords: lesson?.seo_keywords || '',
-        publishedTime: lesson?.created_at || '',
-        modifiedTime: lesson?.updated_at || '',
-      },
-      fallback: false,
-      lesson: {
-        ...lesson,
-        collab_url: finalPathname,
-        structuredData: cleanedStructuredData,
-      },
-      translations: translationArray,
-      markdown,
-      ipynbHtml,
-    },
-  };
 };
 
 function LessonSlug({ lesson, markdown, ipynbHtml }) {
@@ -187,23 +191,8 @@ function LessonSlug({ lesson, markdown, ipynbHtml }) {
   const { fontColor, borderColor, featuredLight } = useStyle();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const currentTheme = useColorModeValue('light', 'dark');
-  const translations = lesson?.translations || { es: '', en: '', us: '' };
-
-  const router = useRouter();
-  const { slug } = router.query;
-  const { locale } = router;
 
   const isIpynb = ipynbHtml?.statusText === 'OK' || ipynbHtml?.iframe;
-
-  useEffect(() => {
-    const redirect = redirectsFromApi?.find((r) => r?.source === `${locale === 'en' ? '' : `/${locale}`}/lesson/${slug}`);
-
-    if (redirect) {
-      router.push(redirect?.destination);
-    }
-
-    return () => {};
-  }, [router, router.locale, translations]);
 
   return (
     <>
@@ -244,33 +233,39 @@ function LessonSlug({ lesson, markdown, ipynbHtml }) {
         gridGap="36px"
         padding="0 10px"
       >
-        <Box display={{ base: 'none', md: 'flex' }} position={{ base: 'inherit', md: 'sticky' }} top="20px" height="fit-content" gridColumn="1 / span 1" margin={{ base: '0 0 40px', md: '0' }}>
+        <Box display={{ base: 'none', md: 'block' }} position={{ base: 'inherit', md: 'sticky' }} top="20px" height="fit-content" gridColumn="1 / span 1" margin={{ base: '0 0 40px', md: '0' }}>
           <MktSideRecommendedCourses technologies={lesson?.technologies} />
+          {/* <DynamicCallToAction
+            assetId={lesson?.id}
+            assetTechnologies={lesson?.technologies?.map((item) => item?.slug)}
+            assetType="lesson"
+            placement="side"
+            marginTop="40px"
+          />
+          <PodcastCallToAction
+            placement="side"
+            marginTop="40px"
+          /> */}
         </Box>
         <Box gridColumn="2 / span 12" maxWidth="854px">
           <Box display="grid" gridColumn="2 / span 12">
             <Box display="flex" flexDirection={{ base: 'column', md: 'row' }} margin="0 0 1rem 0" gridGap="10px" justifyContent="space-between" position="relative">
               <Box>
-                {lesson?.technologies ? (
-                  <TagCapsule
-                    isLink
-                    href="/lessons"
-                    variant="rounded"
-                    tags={lesson?.technologies || ['']}
-                    marginY="8px"
-                    fontSize="13px"
-                    style={{
-                      padding: '2px 10px',
-                      margin: '0',
-                    }}
-                    gap="10px"
-                    paddingX="0"
-                  />
-                ) : (
-                  <Skeleton width="130px" height="26px" borderRadius="10px" />
-                )}
+                <TagCapsule
+                  isLink
+                  variant="rounded"
+                  tags={lesson?.technologies || ['']}
+                  marginY="8px"
+                  fontSize="13px"
+                  style={{
+                    padding: '2px 10px',
+                    margin: '0',
+                  }}
+                  gap="10px"
+                  paddingX="0"
+                />
               </Box>
-              <Box display={{ base: 'flex', md: 'block' }} margin={{ base: '0 0 1rem 0', md: '0px' }} position={{ base: '', md: 'absolute' }} width={{ base: '100%', md: '172px' }} height="auto" top="0px" right="32px" background={featuredLight} borderRadius="4px" color={fontColor}>
+              <Box display={{ base: 'flex', md: 'block' }} margin={{ base: '0 0 1rem 0', md: '0px' }} position={{ base: '', md: 'block' }} width={{ base: '100%', md: '172px' }} height="auto" top="0px" right="32px" background={featuredLight} borderRadius="4px" color={fontColor}>
                 {lesson?.readme_url && (
                   <Link display="flex" target="_blank" rel="noopener noreferrer" width="100%" gridGap="8px" padding={{ base: '8px 12px', md: '8px' }} background="transparent" href={`${lesson?.readme_url}`} _hover={{ opacity: 0.7 }} style={{ color: fontColor, textDecoration: 'none' }}>
                     <Icon icon="pencil" color="#A0AEC0" width="20px" height="20px" />
@@ -300,26 +295,38 @@ function LessonSlug({ lesson, markdown, ipynbHtml }) {
 
           {markdown && !isIpynb ? (
             <Box
-              height="100%"
-              margin="0 rem auto 0 auto"
-              // display="grid"
               gridColumn="2 / span 12"
-              transition="background 0.2s ease-in-out"
-              borderRadius="3px"
-              maxWidth="1280px"
-              background={useColorModeValue('white', 'dark')}
-              width={{ base: '100%', md: 'auto' }}
-              className={`markdown-body ${useColorModeValue('light', 'dark')}`}
+              margin="0 rem auto 0 auto"
+              height="100%"
             >
-              <MarkDownParser content={markdownData.content} withToc isPublic />
+              <Box
+                transition="background 0.2s ease-in-out"
+                background={useColorModeValue('white', 'dark')}
+                borderRadius="3px"
+                maxWidth="1280px"
+                width={{ base: '100%', md: 'auto' }}
+                className={`markdown-body ${useColorModeValue('light', 'dark')}`}
+              >
+                <MarkDownParser assetData={lesson} content={markdownData.content} withToc isPublic />
+              </Box>
+              {lesson?.slug && (
+                <RelatedContent
+                  slug={lesson?.slug}
+                  type="LESSON,ARTICLE"
+                  extraQuerys={{ exclude_category: excludeCagetoriesFor.lessons }}
+                  technologies={lesson?.technologies}
+                  margin="4rem 0 0 0"
+                  maxWidth="1280px"
+                />
+              )}
               <MktRecommendedCourses
-                display={{ base: 'none', md: 'grid' }}
-                title={t('common:continue-learning', { technologies: lesson?.technologies.map((tech) => unSlugifyCapitalize(tech)).slice(0, 4).join(', ') })}
-                technologies={lesson?.technologies.join(',')}
+                mt="3rem"
+                mx="0"
+                display={{ base: 'none', md: 'flex' }}
+                technologies={lesson?.technologies}
               />
-
+              <MktEventCards isSmall hideDescription title={t('common:upcoming-workshops')} margin="3rem 0 31px 0" />
             </Box>
-
           ) : (
             <>
               {!isIpynb && (
@@ -327,7 +334,7 @@ function LessonSlug({ lesson, markdown, ipynbHtml }) {
               )}
             </>
           )}
-          <Box position={{ base: 'fixed', md: 'inherit' }} display={{ base: 'initial', md: 'none' }} width="100%" bottom={0} left={0} height="auto">
+          <Box display={{ base: 'initial', md: 'none' }}>
             <MktSideRecommendedCourses technologies={lesson?.technologies} title={false} padding="0" containerPadding="16px 14px" borderRadius="0px" skeletonHeight="80px" skeletonBorderRadius="0" />
           </Box>
 
@@ -411,6 +418,20 @@ function LessonSlug({ lesson, markdown, ipynbHtml }) {
                   <IpynbHtmlParser
                     html={ipynbHtml.html}
                   />
+                  {lesson?.slug && (
+                    <RelatedContent
+                      slug={lesson?.slug}
+                      type="LESSON,ARTICLE"
+                      extraQuerys={{ exclude_category: excludeCagetoriesFor.lessons }}
+                      technologies={lesson?.technologies}
+                      maxWidth="1280px"
+                    />
+                  )}
+                  <MktRecommendedCourses
+                    display={{ base: 'none', md: 'flex' }}
+                    technologies={lesson?.technologies}
+                  />
+                  <MktEventCards isSmall hideDescription title={t('common:upcoming-workshops')} margin="20px 0 31px 0" />
                 </Box>
               )}
             </Box>

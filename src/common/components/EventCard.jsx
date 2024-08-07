@@ -12,11 +12,11 @@ import useStyle from '../hooks/useStyle';
 // import { parseQuerys } from '../../utils/url';
 // import modifyEnv from '../../../modifyEnv';
 
-function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, startingAt, endingAt, technologies, stTranslation, ...rest }) {
-  const { t, lang } = useTranslation('live-event');
+function EventCard({ id, language, slug, title, ignoreDynamicHandler, description, host, startingAt, endingAt, technologies, isSmall, ...rest }) {
+  const { t } = useTranslation('live-event');
   const [date, setDate] = useState('');
-  const { lightColor, disabledColor2, featuredColor } = useStyle();
-  const startedButRemain = date?.started && date?.ended === false;
+  const { lightColor, featuredColor } = useStyle();
+  const startedButNotEnded = date?.started && date?.ended === false;
   // const BREATHECODE_HOST = modifyEnv({ queryString: 'host', env: process.env.BREATHECODE_HOST });
   // const accessToken = getStorageItem('accessToken');
 
@@ -33,6 +33,7 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
     start: startingAtDate,
     end: endingAtDate,
   });
+  const languageConnector = (language === 'us' || language === 'en' || language === null) ? '' : `/${language}`;
 
   const formatTimeString = (start) => {
     const isValidDates = isValidDate(start);
@@ -47,23 +48,23 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
 
       if (months >= 1) {
         return months > 1
-          ? stTranslation?.[lang]?.['live-event']?.['start-months']?.replace('{{time}}', months) || t('start-months', { time: months })
-          : stTranslation?.[lang]?.['live-event']?.['start-month']?.replace('{{time}}', months) || t('start-month', { time: months });
+          ? t('start-months', { time: months })
+          : t('start-month', { time: months });
       }
       if (days >= 1 && months === 0) {
         return days > 1
-          ? stTranslation?.[lang]?.['live-event']?.['start-days']?.replace('{{time}}', days) || t('start-days', { time: days })
-          : stTranslation?.[lang]?.['live-event']?.['start-day']?.replace('{{time}}', days) || t('start-day', { time: days });
+          ? t('start-days', { time: days })
+          : t('start-day', { time: days });
       }
       if (hours >= 1 && days === 0 && months === 0) {
         return hours > 1
-          ? stTranslation?.[lang]?.['live-event']?.['start-hours']?.replace('{{time}}', averageHour) || t('start-hours', { time: averageHour || 0 })
-          : stTranslation?.[lang]?.['live-event']?.['start-hour']?.replace('{{time}}', averageHour) || t('start-hour', { time: averageHour || 0 });
+          ? t('start-hours', { time: averageHour || 0 })
+          : t('start-hour', { time: averageHour || 0 });
       }
       if (minutes >= 1 && hours === 0 && days === 0 && months === 0) {
         return minutes > 1
-          ? stTranslation?.[lang]?.['live-event']?.['start-minutes']?.replace('{{time}}', minutes) || t('start-minutes', { time: minutes || 0 })
-          : stTranslation?.[lang]?.['live-event']?.['start-minute']?.replace('{{time}}', minutes) || t('start-minute', { time: minutes || 0 });
+          ? t('start-minutes', { time: minutes || 0 })
+          : t('start-minute', { time: minutes || 0 });
       }
 
       return '';
@@ -71,7 +72,7 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
 
     const formated = formatDurationString();
 
-    if (formated === '') return stTranslation ? stTranslation[lang]['live-event']['few-seconds'] : t('few-seconds');
+    if (formated === '') return t('few-seconds');
     return formated;
   };
 
@@ -79,13 +80,13 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
     let formatedTime;
     if (ended) {
       formatedTime = formatTimeString(end);
-      return stTranslation ? stTranslation?.[lang]?.['live-event'].ended.replace('{{time}}', formatedTime) : t('ended', { time: formatedTime });
+      return t('ended', { time: formatedTime });
     }
     formatedTime = formatTimeString(start);
     if (started) {
-      return stTranslation ? stTranslation?.[lang]?.['live-event'].started.replace('{{time}}', formatedTime) : t('started', { time: formatedTime });
+      return t('started', { time: formatedTime });
     }
-    return stTranslation ? stTranslation?.[lang]?.['live-event']['will-start'].replace('{{time}}', formatedTime) : t('will-start', { time: formatedTime });
+    return t('will-start', { time: formatedTime });
   };
 
   const formatedTime = (start, end) => {
@@ -108,22 +109,22 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
   }, []);
 
   return (
-    <Flex flexDirection="column" gridGap="16px" maxWidth={{ base: '260px', sm: '310px' }} borderRadius="12px" padding="16px" border={startedButRemain ? '2px solid' : '1px solid'} borderColor={startedButRemain ? 'blue.default' : 'gray.350'} background={startedButRemain ? featuredColor : 'inherit'} {...rest}>
+    <Flex flexDirection="column" gridGap="16px" width={isSmall ? '310px' : 'auto'} maxWidth={{ base: '260px', sm: '310px' }} borderRadius="12px" padding="16px" border={startedButNotEnded ? '2px solid' : '1px solid'} borderColor={startedButNotEnded ? 'blue.default' : 'gray.350'} background={startedButNotEnded ? featuredColor : 'inherit'} {...rest}>
       {/* -------------------------------- head event info -------------------------------- */}
       <Flex justifyContent="space-between" alignItems="center">
-        <Box color={startedButRemain ? 'blue.default' : lightColor} display="flex" alignItems="center" gridGap="8px">
+        <Box color={startedButNotEnded ? 'blue.default' : lightColor} display="flex" alignItems="center" gridGap="8px">
           <Icon icon="chronometer" color="currentColor" width="20px" height="20px" />
           <Text size="12px" fontWeight={700}>
-            {intervalDurationDate?.hours > 0 && (stTranslation?.[lang]?.['live-event']?.['time-duration']?.replace('{{time}}', `${intervalDurationDate?.hours}${intervalDurationDate?.hours > 1 ? 'hrs' : 'hr'}`) || t('time-duration', { time: `${intervalDurationDate?.hours}${intervalDurationDate?.hours > 1 ? 'hrs' : 'hr'}` }))}
+            {intervalDurationDate?.hours > 0 && t('time-duration', { time: `${intervalDurationDate?.hours}${intervalDurationDate?.hours > 1 ? 'hrs' : 'hr'}` })}
 
-            {intervalDurationDate?.hours === 0 && intervalDurationDate?.minutes > 0 && (stTranslation?.[lang]?.['live-event']?.['time-duration']?.replace('{{time}}', `${intervalDurationDate?.minutes}${intervalDurationDate?.minutes > 1 ? 'mins' : 'min'}`) || t('time-duration', { time: `${intervalDurationDate?.minutes}${intervalDurationDate?.minutes > 1 ? 'mins' : 'min'}` }))}
+            {intervalDurationDate?.hours === 0 && intervalDurationDate?.minutes > 0 && t('time-duration', { time: `${intervalDurationDate?.minutes}${intervalDurationDate?.minutes > 1 ? 'mins' : 'min'}` })}
           </Text>
         </Box>
-        {startedButRemain ? (
-          <Box display="flex" alignItems="center" gridGap="8px" padding="4px 10px" color="danger" background="red.light" borderRadius="18px">
+        {startedButNotEnded ? (
+          <Box display="flex" alignItems="center" height={isSmall ? '24px' : 'auto'} gridGap="8px" padding="4px 10px" color="danger" background="red.light" borderRadius="18px">
             <Icon icon="dot" color="currentColor" width="9px" height="9px" />
             <Text size="12px" fontWeight={700} lineHeight="14.4px">
-              {stTranslation ? stTranslation[lang]['live-event']['live-now'] : t('live-now')}
+              {t('live-now')}
             </Text>
           </Box>
         ) : (
@@ -133,7 +134,7 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
         )}
       </Flex>
 
-      <Heading fontWeight={700} style={{ fontSize: '24px' }}>
+      <Heading size={isSmall ? '14px' : '24px'} letterSpacing={isSmall && '0.05em'} fontWeight={700} style={{ margin: '0' }}>
         {title}
       </Heading>
 
@@ -141,12 +142,14 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
         <TagCapsule tags={technologies} fontSize="13px" lineHeight="15.6px" borderRadius="20px" fontWeight={700} padding="8px 16px" margin="-5px 0 0 0" />
       )}
 
-      <Text size="14px">
-        {description}
-      </Text>
+      {description && (
+        <Text size={isSmall ? '12px' : '14px'}>
+          {description}
+        </Text>
+      )}
 
       {/* -------------------------------- host info -------------------------------- */}
-      {(host !== null && host !== undefined) && (typeof host === 'string' ? (
+      {(host !== null && host !== undefined && host.length > 5 && !isSmall) && (typeof host === 'string' ? (
         <Heading as="span" fontWeight={700} style={{ fontSize: '14px' }}>
           {host}
         </Heading>
@@ -166,10 +169,10 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
           </Box>
         </Flex>
       ))}
-      {(ignoreDynamicHandler || startedButRemain) ? (
+      {ignoreDynamicHandler && (
         <Link
           margin="auto 0 0 0"
-          href={`/${lang}/workshops/${slug}`}
+          href={`${languageConnector}/workshops/${slug}`}
           color="blue.default"
           target="_blank"
           rel="noopener noreferrer"
@@ -178,13 +181,11 @@ function EventCard({ id, slug, title, ignoreDynamicHandler, description, host, s
           justifyContent="center"
           gridGap="10px"
         >
-          {stTranslation ? stTranslation[lang]['live-event']['join-event'] : t('join-event')}
+          {(ignoreDynamicHandler || startedButNotEnded)
+            ? t('join-event')
+            : t('book-place')}
           <Icon icon="longArrowRight" width="24px" height="10px" color="currentColor" />
         </Link>
-      ) : (
-        <Text margin="auto 0 0 0" size="18px" color={disabledColor2} textAlign="center" fontWeight={700}>
-          {stTranslation ? stTranslation[lang]['live-event']['will-start-soon'] : t('will-start-soon')}
-        </Text>
       )}
     </Flex>
   );
@@ -197,10 +198,11 @@ EventCard.propTypes = {
   endingAt: PropTypes.string,
   technologies: PropTypes.arrayOf(PropTypes.string),
   host: PropTypes.oneOfType([PropTypes.string, PropTypes.objectOf(PropTypes.any)]),
-  stTranslation: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   id: PropTypes.number.isRequired,
   slug: PropTypes.string.isRequired,
   ignoreDynamicHandler: PropTypes.bool,
+  language: PropTypes.string,
+  isSmall: PropTypes.bool,
 };
 
 EventCard.defaultProps = {
@@ -209,8 +211,9 @@ EventCard.defaultProps = {
   endingAt: '',
   technologies: [],
   host: '',
-  stTranslation: null,
   ignoreDynamicHandler: false,
+  language: '',
+  isSmall: false,
 };
 
 export default EventCard;

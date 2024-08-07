@@ -4,28 +4,38 @@ import { useRouter } from 'next/router';
 import useTranslation from 'next-translate/useTranslation';
 import { Avatar, Box, useToast } from '@chakra-ui/react';
 import bc from '../services/breathecode';
-import { isWindow, removeURLParameter } from '../../utils';
+import { getQueryString, isWindow, removeStorageItem, removeURLParameter } from '../../utils';
+import { reportDatalayer } from '../../utils/requests';
 import axiosInstance, { cancelAllCurrentRequests } from '../../axios';
-import { usePersistent } from '../hooks/usePersistent';
+import { usePersistent, usePersistentBySession } from '../hooks/usePersistent';
 import modifyEnv from '../../../modifyEnv';
 import ModalInfo from '../../js_modules/moduleMap/modalInfo';
 import Text from '../components/Text';
 import { SILENT_CODE } from '../../lib/types';
+import { warn } from '../../utils/logging';
 
 const initialState = {
   isLoading: true,
   isAuthenticated: false,
+  isAuthenticatedWithRigobot: false,
   user: null,
+};
+
+const langHelper = {
+  us: 'en',
+  en: 'en',
+  es: 'es',
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
     case 'INIT': {
-      const { isLoading, isAuthenticated, user } = action.payload;
+      const { isLoading, isAuthenticated, isAuthenticatedWithRigobot, user } = action.payload;
       return {
         ...state,
         isLoading,
         isAuthenticated,
+        isAuthenticatedWithRigobot,
         user,
       };
     }
@@ -36,16 +46,6 @@ const reducer = (state, action) => {
         isLoading: false,
         isAuthenticated: true,
         user,
-      };
-    }
-    case 'CHOOSE': {
-      return {
-        ...state,
-        isAuthenticated: true,
-        user: {
-          ...state.user,
-          active_cohort: action.payload,
-        },
       };
     }
     case 'LOGOUT': {
@@ -71,6 +71,12 @@ const reducer = (state, action) => {
         user: action.payload,
       };
     }
+    case 'LOADING': {
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    }
     default: {
       return { ...state };
     }
@@ -82,16 +88,19 @@ const setTokenSession = (token) => {
     localStorage.setItem('accessToken', token);
     axiosInstance.defaults.headers.common.Authorization = `Token ${token}`;
   } else {
-    localStorage.removeItem('syllabus');
-    localStorage.removeItem('programMentors');
-    localStorage.removeItem('programServices');
-    localStorage.removeItem('cohortSession');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('taskTodo');
-    localStorage.removeItem('profile');
-    localStorage.removeItem('sortedAssignments');
-    localStorage.removeItem('days_history_log');
-    localStorage.removeItem('queryCache');
+    removeStorageItem('syllabus');
+    removeStorageItem('programMentors');
+    removeStorageItem('programServices');
+    removeStorageItem('cohortSession');
+    removeStorageItem('accessToken');
+    removeStorageItem('taskTodo');
+    removeStorageItem('profile');
+    removeStorageItem('sortedAssignments');
+    removeStorageItem('days_history_log');
+    removeStorageItem('queryCache');
+    removeStorageItem('hasPaidSubscription');
+    removeStorageItem('programsList');
+    removeStorageItem('isClosedLateModal');
     delete axiosInstance.defaults.headers.common.Authorization;
   }
 };
@@ -110,11 +119,13 @@ export const AuthContext = createContext({
   ...initialState,
 });
 
-function AuthProvider({ children }) {
+function AuthProvider({ children, pageProps }) {
   const BREATHECODE_HOST = modifyEnv({ queryString: 'host', env: process.env.BREATHECODE_HOST });
   const router = useRouter();
   const { t, lang } = useTranslation('footer');
   const toast = useToast();
+  const queryCoupon = getQueryString('coupon');
+  const [, setCoupon] = usePersistentBySession('coupon', []);
   const [state, dispatch] = useReducer(reducer, initialState);
   const [modalState, setModalState] = useState({
     state: false,
@@ -131,10 +142,19 @@ function AuthProvider({ children }) {
   // Validate and Fetch user token from localstorage when it changes
   const handleSession = (tokenString) => setTokenSession(tokenString);
 
+  const updateSettingsLang = async () => {
+    try {
+      await bc.auth().updateSettings({ lang });
+    } catch (e) {
+      warn('error function "updateSettingsLang": ', e);
+    }
+  };
   const authHandler = async () => {
     const token = getToken();
 
     if (token !== undefined && token !== null) {
+      const respRigobotAuth = await bc.auth().verifyRigobotConnection(token);
+      const isAuthenticatedWithRigobot = respRigobotAuth && respRigobotAuth?.status === 200;
       const requestToken = await fetch(`${BREATHECODE_HOST}/v1/auth/token/${token}`, {
         method: 'GET',
         headers: {
@@ -159,34 +179,59 @@ function AuthProvider({ children }) {
           .then(({ data }) => {
             dispatch({
               type: 'INIT',
-              payload: { user: data, isAuthenticated: true, isLoading: false },
+              payload: { user: data, isAuthenticated: true, isAuthenticatedWithRigobot, isLoading: false },
             });
             const permissionsSlug = data.permissions.map((l) => l.codename);
+            const settingsLang = data?.settings.lang;
+
             setProfile({
               ...profile,
               ...data,
               permissionsSlug,
+            });
+            reportDatalayer({
+              dataLayer: {
+                event: 'session_load',
+                method: 'native',
+                user_id: data.id,
+                email: data.email,
+                // is_saas: data.roles.filter(r => r.role.toLowerCase() == "student" && r.)
+                first_name: data.first_name,
+                last_name: data.last_name,
+                avatar_url: data.profile?.avatar_url || data.github?.avatar_url,
+                language: data.profile?.settings?.lang === 'us' ? 'en' : data.profile?.settings?.lang,
+              },
             });
             if (data.github) {
               localStorage.setItem('showGithubWarning', 'closed');
             } else if (!localStorage.getItem('showGithubWarning') || localStorage.getItem('showGithubWarning') !== 'postponed') {
               localStorage.setItem('showGithubWarning', 'active');
             }
+            if (!pageProps.disableLangSwitcher && langHelper[router?.locale] !== settingsLang) {
+              updateSettingsLang();
+            }
           })
           .catch(() => {
             handleSession(null);
           });
       }
+    } else {
+      dispatch({
+        type: 'LOADING',
+        payload: false,
+      });
     }
 
     return null;
   };
-
   useEffect(() => {
+    if (queryCoupon) {
+      setCoupon(queryCoupon);
+    }
     authHandler();
   }, [router]);
 
-  const login = async (payload = null) => {
+  const login = async (payload = null, disableRedirect = false) => {
     const redirect = isWindow && localStorage.getItem('redirect');
     try {
       if (payload) {
@@ -219,13 +264,26 @@ function AuthProvider({ children }) {
             type: 'LOGIN',
             payload: responseData,
           });
-          if (redirect && redirect.length > 0) {
-            router.push(redirect);
-            localStorage.removeItem('redirect');
+          if (!disableRedirect) {
+            if (redirect && redirect.length > 0) {
+              router.push(redirect);
+              localStorage.removeItem('redirect');
+            } else {
+              router.push('/choose-program');
+              localStorage.removeItem('redirect');
+            }
           } else {
-            router.push('/choose-program');
-            localStorage.removeItem('redirect');
+            router.reload();
           }
+          reportDatalayer({
+            dataLayer: {
+              event: 'login',
+              path: router.pathname,
+              method: 'native',
+              user_id: responseData.user_id,
+              email: responseData.email,
+            },
+          });
         }
         return response;
       }
@@ -264,13 +322,6 @@ function AuthProvider({ children }) {
     }
   };
 
-  const choose = async (payload) => {
-    dispatch({
-      type: 'CHOOSE',
-      payload,
-    });
-  };
-
   const logout = (callback = null) => {
     cancelAllCurrentRequests();
     handleSession(null);
@@ -288,7 +339,6 @@ function AuthProvider({ children }) {
       }
     }
     localStorage.removeItem('showGithubWarning');
-    localStorage.removeItem('redirect-after-register');
     localStorage.removeItem('redirect');
     dispatch({ type: 'LOGOUT' });
   };
@@ -309,7 +359,6 @@ function AuthProvider({ children }) {
         login,
         logout,
         register,
-        choose,
         updateProfilePicture,
       }}
     >
@@ -368,10 +417,12 @@ function AuthProvider({ children }) {
 
 AuthProvider.propTypes = {
   children: PropTypes.node,
+  pageProps: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
 };
 
 AuthProvider.defaultProps = {
   children: null,
+  pageProps: {},
 };
 
 export default AuthProvider;

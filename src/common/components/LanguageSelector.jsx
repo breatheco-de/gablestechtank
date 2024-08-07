@@ -7,16 +7,22 @@ import {
   PopoverTrigger,
   PopoverContent,
   PopoverArrow,
-  Link,
   Button,
   useColorModeValue,
 } from '@chakra-ui/react';
+import useTranslation from 'next-translate/useTranslation';
 import styles from '../../../styles/flags.module.css';
 import navbarTR from '../translations/navbar';
-import { isWindow } from '../../utils';
+import bc from '../services/breathecode';
+import useAuth from '../hooks/useAuth';
+import NextChakraLink from './NextChakraLink';
+import useSession from '../hooks/useSession';
 
-function LanguageSelector({ display, translations }) {
+function LanguageSelector({ display, translations, ...rest }) {
+  const { userSession } = useSession();
   const router = useRouter();
+  const { t } = useTranslation('common');
+  const { isAuthenticated } = useAuth();
   const locale = router.locale === 'default' ? 'en' : router.locale;
   const popoverContentBgColor = useColorModeValue('white', 'gray.800');
 
@@ -25,10 +31,20 @@ function LanguageSelector({ display, translations }) {
   } = navbarTR[locale];
   const [languagesOpen, setLanguagesOpen] = useState(false);
   const currentLanguage = languagesTR.filter((l) => l.value === locale)[0];
-  const translationsPropsExists = translations?.length > 0;
-  const currentTranslationLanguage = isWindow
-    && translationsPropsExists
-    && translations?.find((l) => l?.slug === window.location.pathname?.split('/')?.pop());
+  const externalTranslations = userSession?.translations || translations;
+  const translationsPropsExists = externalTranslations?.length > 0;
+  const currentTranslationLanguage = translationsPropsExists && externalTranslations?.find((l) => l.lang === locale);
+  const translationData = (translationsPropsExists && externalTranslations) || languagesTR;
+
+  const updateSettingsLang = async (lang) => {
+    try {
+      if (isAuthenticated) {
+        await bc.auth().updateSettings({ lang });
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   return (
     <Popover
@@ -45,6 +61,8 @@ function LanguageSelector({ display, translations }) {
           aria-label="Language Selector"
           textAlign="-webkit-center"
           height="auto"
+          isDisabled={externalTranslations?.length === 1}
+          title={externalTranslations?.length === 1 ? t('no-translation-available') : ''}
           backgroundColor="transparent"
           width="auto"
           alignSelf="center"
@@ -55,6 +73,7 @@ function LanguageSelector({ display, translations }) {
             background: 'transparent',
           }}
           onClick={() => setLanguagesOpen(!languagesOpen)}
+          {...rest}
         >
           <Box
             className={`${styles.flag} ${styles[currentTranslationLanguage?.lang || currentLanguage?.value]}`}
@@ -80,38 +99,37 @@ function LanguageSelector({ display, translations }) {
           gridGap="10px"
           padding="12px"
         >
-          {((translationsPropsExists
-            && translations)
-            || languagesTR).map((l) => {
-            const lang = languagesTR.filter((language) => language?.value === l?.lang)[0];
-            const value = translationsPropsExists ? lang?.value : l.value;
-            const label = translationsPropsExists ? lang?.label : l.label;
+          {translationData.map((l) => {
+            const currLang = languagesTR.filter((language) => language?.value === l?.lang)[0];
+            const value = translationsPropsExists ? currLang?.value : l.value;
+            const label = translationsPropsExists ? currLang?.label : l.label;
             const path = translationsPropsExists ? l?.link : router.asPath;
 
             const cleanedPath = (path === '/' && value !== 'en') ? '' : path;
-            const localePrefix = `${value !== 'en' && !cleanedPath.includes(`/${value}`) ? `/${value}` : ''}`;
-
-            const link = `${localePrefix}${cleanedPath}`;
+            const link = cleanedPath;
 
             return (
-              <Link
+              <NextChakraLink
                 width="100%"
                 key={value}
                 href={link}
-                role="group"
+                locale={value}
                 alignSelf="center"
                 display="flex"
-                gridGap="5px"
+                gridGap={5}
                 fontWeight="bold"
                 textDecoration="none"
                 opacity={locale === value ? 1 : 0.75}
                 _hover={{
                   opacity: 1,
                 }}
+                onClick={async () => {
+                  await updateSettingsLang(l.value);
+                }}
               >
                 <Box className={`${styles.flag} ${styles[value]}`} width="25px" height="25px" />
                 {label}
-              </Link>
+              </NextChakraLink>
             );
           })}
         </Box>

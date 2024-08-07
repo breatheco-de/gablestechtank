@@ -3,13 +3,13 @@
     "title": "Choose program"
   },
   "title": "Your Programs",
-  "welcome-back-user": "Welcome back, {{name}}",
+  "welcome-back-user": "Welcome, {{name}}",
   "welcome": "Welcome",
   "your-active-programs": "Your active programs",
   "join-our-community": "Join our community",
   "enroll-programs": "Enroll in one of our programs!",
   "not-enrolled": "You are not enrolled in any cohort",
-  "available-courses": "Available courses",
+  "available-programs": "Available programs",
   "read-to-start-learning": "Ready to start learning?",
   "invite": {
     "notify": "Hey! There are {{cohortInvitationWord}} for you to accept.",
@@ -32,5 +32,25 @@
   },
   "roles-info": "Roles are only displayed in development mode",
   "launch-program": "Launch this program",
-  "description": "These are the courses and cohorts that we found you are currently taking, please choose the course you want to take today:"
+  "description": "These are the courses and cohorts that we found you are currently taking, please choose the course you want to take today:",
+  "sidebar": {
+    "live-events-title": "Learn LIVE",
+    "join-our-community": "Join our community"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "connect-rigobot-text": "You need to connect to Rigo AI in order to obtain feedback.",
+    "connect-rigobot": "Connect with Rigobot",
+    "why-feedback-text": "Feedback plays an important role when learning technical skills",
+    "learn-why": "Learn why",
+    "code-review": "Code review",
+    "no-code-reviews-text": "You have not received any feedback yet",
+    "start-interacting": "Start interacting with your mentor or with your assignments to receive feedback here.",
+    "connect-github-connector": "before you can use Rigobot and get feedback on your code.",
+    "from": "From {{name}}"
+  },
+  "late-payment": {
+    "title": "Action Required: Late Payments",
+    "description": "Your account has pending payments for cohort <strong>{{cohort_name}}</strong>. Please contact <strong>{{academy_name}}</strong> coordinator to restore full access to all features. Thank you for your prompt attention."
+  }
 }

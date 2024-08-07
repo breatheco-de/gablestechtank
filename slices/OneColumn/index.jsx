@@ -1,13 +1,13 @@
 /* eslint-disable react/prop-types */
 import React from 'react';
-import MktOneColumn from '../../src/common/components/MktOneColumn';
+import MktOneColumnKPI from '../../src/common/components/MktOneColumnKPI';
 
 /**
  * @typedef {import("@prismicio/client").Content.OneColumnSlice} OneColumnSlice
  * @typedef {import("@prismicio/react").SliceComponentProps<OneColumnSlice>} OneColumnProps
  * @param { OneColumnProps }
  */
-const OneColumn = ({ slice }) => {
+function OneColumn({ slice }) {
   const items = [
     {
       title: slice?.primary?.kpi_title_1,
@@ -27,19 +27,19 @@ const OneColumn = ({ slice }) => {
   ].filter((item) => item?.title && item?.description);
 
   return (
-    <MktOneColumn
+    <MktOneColumnKPI
       id={slice?.primary?.id_key}
       slice={slice}
       title={slice.primary.title}
       subTitle={slice.primary.subtitle}
       paddingMd={slice.primary.paddingMd}
       linkButton={slice.primary.link_button}
-      buttonUrl={slice.primary.button_url.url}
+      buttonUrl={slice?.primary?.button_url?.url || slice.primary.button_url}
       buttonLabel={slice.primary.button_label}
       kpiList={items}
       margin={slice?.primary?.margin || '5rem auto'}
     />
   );
-};
+}
 
 export default OneColumn;

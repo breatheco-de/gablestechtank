@@ -17,7 +17,7 @@ import ProgramCard from '../../common/components/ProgramCard';
 import Heading from '../../common/components/Heading';
 import useStyle from '../../common/hooks/useStyle';
 
-function ChooseProgram({ chooseList, handleChoose }) {
+function ChooseProgram({ chooseList, handleChoose, setLateModalProps }) {
   const { t } = useTranslation('choose-program');
   const { programsList } = useProgramList();
   const [marketingCursesList, setMarketingCursesList] = useState([]);
@@ -28,18 +28,8 @@ function ChooseProgram({ chooseList, handleChoose }) {
   const { featuredColor } = useStyle();
   const router = useRouter();
 
-  useEffect(() => {
-    axiosInstance.defaults.headers.common['Accept-Language'] = router.locale;
-  }, [router.locale]);
-
-  useEffect(() => {
-    bc.payment({ academy: WHITE_LABEL_ACADEMY }).courses()
-      .then(({ data }) => {
-        setMarketingCursesList(data);
-      });
-  }, [router?.locale]);
-
-  const activeSubscriptionCohorts = activeCohorts.length > 0 ? activeCohorts.map((item) => {
+  const cardColumnSize = 'repeat(auto-fill, minmax(17rem, 1fr))';
+  const activeSubscriptionCohorts = activeCohorts?.length > 0 ? activeCohorts.map((item) => {
     const cohort = item?.cohort;
     const currentCohortProps = programsList[cohort.slug];
     return ({
@@ -53,32 +43,30 @@ function ChooseProgram({ chooseList, handleChoose }) {
       all_subscriptions: currentCohortProps?.all_subscriptions,
       subscription_exists: currentCohortProps?.subscription !== null || currentCohortProps?.plan_financing !== null,
     });
-  }).filter((item) => {
-    const cohort = item?.cohort;
-    const subscriptionExists = item?.subscription !== null || item?.plan_financing !== null;
-
-    const currentSubscription = item?.plan_financing || item?.subscription;
-    const isFreeTrial = currentSubscription?.status?.toLowerCase() === 'free_trial';
-    const suggestedPlan = (currentSubscription?.planOffer?.slug === undefined && currentSubscription?.planOffer?.status) || (item?.all_subscriptions?.length > 0
-      && item?.all_subscriptions?.find((sub) => sub?.plans?.[0]?.slug === currentSubscription?.planOffer?.slug));
-
-    // Ignore free_trial subscription if plan_offer already exists in list
-    if (isFreeTrial && suggestedPlan !== undefined) return false;
-    if ((cohort?.available_as_saas && subscriptionExists) || cohort?.available_as_saas === false) return true;
-
-    return false;
   }) : [];
 
-  const marketingCourses = marketingCursesList && marketingCursesList.filter(
+  const marketingCourses = marketingCursesList?.length > 0 ? marketingCursesList.filter(
     (item) => !activeSubscriptionCohorts.some(
-      (activeCohort) => activeCohort?.subscription?.plans[0]?.slug === item?.slug
-        || activeCohort?.plan_financing?.plans[0]?.slug === item?.slug,
+      (activeCohort) => activeCohort?.all_subscriptions?.some(
+        (sb) => sb?.selected_cohort_set?.slug === item?.slug,
+      ),
     ) && item?.course_translation?.title,
-  );
+  ) : [];
 
   const isNotAvailableForMktCourses = activeSubscriptionCohorts.length > 0 && activeSubscriptionCohorts.some(
     (item) => item?.cohort?.available_as_saas === false,
   );
+
+  useEffect(() => {
+    axiosInstance.defaults.headers.common['Accept-Language'] = router.locale;
+  }, [router.locale]);
+
+  useEffect(() => {
+    bc.payment({ academy: WHITE_LABEL_ACADEMY }).courses()
+      .then(({ data }) => {
+        setMarketingCursesList(data);
+      });
+  }, [router?.locale]);
 
   return (
     <>
@@ -97,7 +85,7 @@ function ChooseProgram({ chooseList, handleChoose }) {
       {activeSubscriptionCohorts.length > 0 && (
         <Box
           display="grid"
-          gridTemplateColumns="repeat(auto-fill, minmax(15rem, 1fr))"
+          gridTemplateColumns={{ base: activeSubscriptionCohorts.length > 1 ? cardColumnSize : '', md: cardColumnSize }}
           height="auto"
           gridGap="4rem"
         >
@@ -107,22 +95,23 @@ function ChooseProgram({ chooseList, handleChoose }) {
               item={item}
               handleChoose={handleChoose}
               onOpenModal={() => setUpgradeModalIsOpen(true)}
+              setLateModalProps={setLateModalProps}
             />
           ))}
         </Box>
       )}
 
-      {!isNotAvailableForMktCourses && marketingCourses.length > 0 && marketingCourses.some((l) => l?.course_translation?.title) && (
+      {!isNotAvailableForMktCourses && marketingCourses?.length > 0 && marketingCourses.some((l) => l?.course_translation?.title) && (
         <>
           <Box display="flex" flexDirection={{ base: 'column', md: 'row' }} margin="5rem  0 3rem 0" alignItems="center" gridGap={{ base: '4px', md: '1rem' }}>
             <Heading size="sm" width="fit-content" whiteSpace="nowrap">
-              {t('available-courses')}
+              {t('available-programs')}
             </Heading>
             <Box as="hr" width="100%" margin="0.5rem 0 0 0" />
           </Box>
           <Box
             display="grid"
-            gridTemplateColumns="repeat(auto-fill, minmax(15rem, 1fr))"
+            gridTemplateColumns={cardColumnSize}
             height="auto"
             gridGap="4rem"
           >
@@ -132,7 +121,7 @@ function ChooseProgram({ chooseList, handleChoose }) {
                 icon="coding"
                 iconLink={item?.icon_url}
                 iconBackground="blue.default"
-                handleChoose={() => router.push(`/${item?.slug}`)}
+                handleChoose={() => router.push(item?.course_translation?.landing_url)}
                 programName={item?.course_translation.title}
                 programDescription={item?.course_translation?.description}
                 bullets={item?.course_translation?.course_modules}
@@ -188,7 +177,7 @@ function ChooseProgram({ chooseList, handleChoose }) {
             <Box
               display="grid"
               mt="1rem"
-              gridTemplateColumns="repeat(auto-fill, minmax(15rem, 1fr))"
+              gridTemplateColumns={cardColumnSize}
               gridColumnGap="5rem"
               gridRowGap="3rem"
               height="auto"
@@ -212,10 +201,12 @@ function ChooseProgram({ chooseList, handleChoose }) {
 ChooseProgram.propTypes = {
   chooseList: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   handleChoose: PropTypes.func,
+  setLateModalProps: PropTypes.func,
 };
 ChooseProgram.defaultProps = {
   chooseList: [],
   handleChoose: () => {},
+  setLateModalProps: () => {},
 };
 
 export default ChooseProgram;

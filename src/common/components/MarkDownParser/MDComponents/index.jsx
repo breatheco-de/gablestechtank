@@ -13,40 +13,96 @@ import { slugify } from '../../../../utils';
 import Text from '../../Text';
 import quoteImg from '../../../img/quote.png';
 import whiteQuoteImg from '../../../img/white-quote.png';
+import { log } from '../../../../utils/logging';
 
+export function generateId(children) {
+  const text = children ? children
+    .map((child) => {
+      if (typeof child === 'string') {
+        return child;
+      } if (child?.props && typeof child?.props?.children?.[0] === 'string') {
+        return child.props.children[0];
+      }
+      if (child?.props && typeof child.props.alt === 'string') {
+        return child.props.alt;
+      }
+      return child;
+    })
+    .join('') : '';
+
+  return slugify(text, { lower: true });
+}
+export function Wrapper({ children, ...rest }) {
+  const style = rest.style || {};
+
+  return (
+    <Box as="div" style={style}>
+      {children}
+    </Box>
+  );
+}
 export function MDLink({ children, href }) {
-  const includesProtocol = href.startsWith('http');
-  const protocol = includesProtocol ? '' : 'https://';
+  function isExternalUrl(url) {
+    try {
+      const baseUrl = process.env.DOMAIN_NAME || '';
+      const base = new URL(baseUrl);
+
+      // Handle relative URLs by using the base URL as a reference
+      const fullUrl = url.startsWith('http') ? url : new URL(url, baseUrl).href;
+
+      // Create a URL object based on the full URL
+      const linkUrl = new URL(fullUrl, baseUrl);
+
+      // Normalize the base hostname by potentially removing 'www.'
+      const baseDomain = base.hostname.replace(/^(www\.)?/, '');
+
+      // Check if the link's hostname ends with the base domain
+      const isInternalDomain = linkUrl.hostname.endsWith(baseDomain);
+
+      // Check port and scheme as well
+      const isSamePort = linkUrl.port === base.port || (linkUrl.port === '' && base.port === '') || (linkUrl.protocol === 'http:' && linkUrl.port === '80' && base.port === '') || (linkUrl.protocol === 'https:' && linkUrl.port === '443' && base.port === '');
+
+      return !(isInternalDomain && isSamePort);
+    } catch (e) {
+      console.error('Invalid URL:', e.message);
+      return false; // If URL is invalid, handle as needed
+    }
+  }
+  const external = isExternalUrl(href);
   return (
     <Link
-      href={`${protocol}${href}`}
+      as="a"
+      href={href}
       fontSize="inherit"
       color="blue.400"
       fontWeight="700"
       overflowWrap="anywhere"
-      target="_blank"
-      rel="noopener noreferrer"
+      target={external ? '_blank' : '_self'}
+      rel={external ? 'noopener noreferrer' : ''}
     >
       {children}
     </Link>
   );
 }
 
-export function Code({ inline, className, children, ...props }) {
+export function Code({ inline, showLineNumbers, showInlineLineNumbers, className, children }) {
   const match = /language-(\w+)/.exec(className || '');
 
   return !inline && match ? (
     <SyntaxHighlighter
-      showLineNumbers
+      showLineNumbers={showLineNumbers}
+      showInlineLineNumbers={showInlineLineNumbers}
       style={tomorrow}
+      customStyle={{
+        padding: showLineNumbers ? '1em 0px' : '16px',
+      }}
       language={match[1]}
       PreTag="div"
-      {...props}
     >
       {String(children).replace(/\n$/, '')}
     </SyntaxHighlighter>
   ) : (
-    <code className={`${className} highlight`} {...props}>
+    <code className={`${className ?? ''} highlight`}>
       {children}
     </code>
   );
@@ -327,9 +383,11 @@ export function MDHr() {
   return <Box as="hr" backgroundColor={useColorModeValue('gray.400', 'gray.500')} mb="20px" />;
 }
 
-export function MDText({ children }) {
+export function MDText({ children, ...rest }) {
+  const id = generateId(children);
+  const idLimited = id.length > 50 ? id.slice(0, 50) : id;
   return (
-    <Text size="l" fontWeight="400">
+    <Text id={idLimited} size="l" fontWeight="400" {...rest}>
       {children}
     </Text>
   );
@@ -361,8 +419,9 @@ export function MDHeading({ children, tagType }) {
     h1: 'sm',
     h2: 'sm',
     h3: '18px',
+    h4: '16px',
   };
-  const id = slugify(String(children));
+  const id = generateId(children);
 
   return (
     <Heading
@@ -484,10 +543,10 @@ export function MDCheckbox({
 }
 
 export function OnlyForBanner({
-  children, permission, cohortSession, profile,
+  children, permission, include, exclude, cohortSession, profile,
 }) {
-  const capabilities = (permission || '')?.split(',');
-  console.log('md_permissions:', capabilities);
+  const allCapabilities = permission.split(',').concat(include.split(',').concat(exclude.split(',')));
+  log('md_permissions:', allCapabilities);
 
   return (
     <OnlyFor
@@ -495,21 +554,28 @@ export function OnlyForBanner({
       withBanner
       profile={profile}
       cohortSession={cohortSession}
-      capabilities={capabilities}
+      capabilities={allCapabilities}
     >
       {children}
     </OnlyFor>
   );
 }
 
+Wrapper.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 Code.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node.isRequired,
   inline: PropTypes.bool,
+  showLineNumbers: PropTypes.bool,
+  showInlineLineNumbers: PropTypes.bool,
 };
 Code.defaultProps = {
   className: '',
   inline: false,
+  showLineNumbers: true,
+  showInlineLineNumbers: true,
 };
 
 MDLink.propTypes = {
@@ -568,11 +634,15 @@ OnlyForBanner.propTypes = {
   permission: PropTypes.string,
   cohortSession: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   profile: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
+  include: PropTypes.string,
+  exclude: PropTypes.string,
 };
 OnlyForBanner.defaultProps = {
   permission: '',
   cohortSession: {},
   profile: {},
+  include: '',
+  exclude: '',
 };
 DOMComponent.propTypes = {
   children: PropTypes.node.isRequired,

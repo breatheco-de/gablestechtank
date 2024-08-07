@@ -6,10 +6,11 @@ import useStyle from '../hooks/useStyle';
 import Heading from './Heading';
 
 function AlertMessage({
-  message, type, style, textStyle, full, textColor, dangerouslySetInnerHTML, title, children, ...rest
+  message, type, iconColor, withoutIcon, style, textStyle, full, textColor, dangerouslySetInnerHTML, title, children, ...rest
 }) {
   const { fontColor } = useStyle();
   const alertColors = {
+    soft: '#FFF4DC',
     warning: '#FFB718',
     success: '#25BF6C',
     error: '#dc3545',
@@ -30,10 +31,12 @@ function AlertMessage({
       gridGap="16px"
       {...rest}
     >
+      {!withoutIcon && (
+        <Icon icon={type} secondColor={rest.secondColor} color={iconColor || (full ? '#000' : '')} props={{ full: true }} style={{ minWidth: '18px' }} width="18px" height="18px" />
+      )}
       {children && children}
       {!children && (
         <>
-          <Icon icon={type} color={full ? '#000' : ''} props={{ full: true }} style={{ minWidth: '18px' }} width="18px" height="18px" />
           <Box>
             {title && (
               <Heading size="20px" letterSpacing="0.02em" mb="10px">
@@ -42,14 +45,14 @@ function AlertMessage({
             )}
             {dangerouslySetInnerHTML ? (
               <Text
-                fontSize="15px"
-                color={full ? 'black' : (textColor || fontColor)}
+                fontSize={rest.fontSize || '15px'}
+                color={full ? (textColor || 'black') : (textColor || fontColor)}
                 fontWeight="500"
                 style={{ ...textStyle, margin: '0' }}
                 dangerouslySetInnerHTML={{ __html: message }}
               />
             ) : (
-              <Text fontSize="15px" color={full ? 'black' : (textColor || fontColor)} fontWeight="700" style={{ ...textStyle, margin: '0' }}>
+              <Text fontSize={rest.fontSize || '15px'} color={full ? (textColor || 'black') : (textColor || fontColor)} fontWeight={rest.fontWeight || '700'} style={{ ...textStyle, margin: '0' }}>
                 {message}
               </Text>
             )}
@@ -61,7 +64,7 @@ function AlertMessage({
 }
 
 AlertMessage.propTypes = {
-  message: PropTypes.string,
+  message: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   type: PropTypes.string,
   style: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   full: PropTypes.bool,
@@ -70,6 +73,8 @@ AlertMessage.propTypes = {
   dangerouslySetInnerHTML: PropTypes.bool,
   title: PropTypes.string,
   children: PropTypes.node,
+  withoutIcon: PropTypes.bool,
+  iconColor: PropTypes.string,
 };
 
 AlertMessage.defaultProps = {
@@ -82,6 +87,8 @@ AlertMessage.defaultProps = {
   dangerouslySetInnerHTML: false,
   title: '',
   children: null,
+  withoutIcon: false,
+  iconColor: '',
 };
 
 export default AlertMessage;

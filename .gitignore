@@ -14,16 +14,20 @@
 
 # production
 /build
+/src/lib/asset-list.json
 
 #sitemaps
 *.xml
 
 # development
 /storybook-static
+/public/generated
+/.storybook/generated
 
 # misc
 .DS_Store
 *.pem
+src/common/utils/iconDict.json
 
 # debug
 npm-debug.log*
@@ -35,6 +39,7 @@ yarn-error.log*
 # local env files
 .env.local
 .env.development
+.env.development.local
 .env.test
 .env.production
 

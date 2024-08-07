@@ -6,14 +6,41 @@
     "image": "{{domain}}/static/images/4geeks.png"
   },
   "welcome-to": "Welcome to:",
+  "checkout": {
+    "title": "Code will set you free",
+    "description": "The path to professional freedom is highly mentored, live and together.",
+    "read-more" :"Read the science behind it.",
+    "read-more-link": "https://4geeks.com/mastering-technical-knowledge"
+  },
+  "secure-checkout": "Guaranteed <strong>safe & secure</strong> checkout",
+  "discount-value-off": "{{value}} Off",
+  "add": "Add",
+  "you-are-getting": "You are getting",
+  "plan-is-ready": "The plan is ready",
+  "payment-success": "Payment successful",
+  "payment-failed": "Payment failed",
+  "discount-applied": "Discount applied",
+  "one_payment_description": "Full access to all features for the duration of the course.",
+  "monthly_payment_description": "Full access to all features for the duration of the course.",
+  "quarterly_payment_description": "Full access to all features for the duration of the course.",
+  "half_yearly_payment_description": "Full access to all features for the duration of the course.",
+  "yearly_payment_description": "Full access to all features for the duration of the course.",
+  "financing_many_months_description": "You will pay ${{monthly_price}} for {{many_months}} months and get full access to all features for the duration of the course.",
+  "connector_duration_trial": "trial",
+  "what-includes": "What includes?",
   "continue-learning": "Continue learning",
+  "switch-user-connector": "You are not {{name}}?",
+  "in-waiting-list-title": "You are in out waiting list",
+  "signup-thanks-text": "Thanks for signing up to try 4Geeks. We'll be in touch when your seat is ready",
   "subscriptions": "Subscriptions",
   "go-back": "Go back",
   "next-step": "Next step",
+  "create-account": "Create account",
   "payment-info": "Payment information",
+  "payment-methods": "Payment methods",
+  "click-here": "Click here to open",
   "select-payment-plan": "Select your payment plan:",
   "what-you-will-get": "What you will get:",
-  "free-trial": "Free trial",
   "contact-information": "Contact information",
   "choose-your-class": "Choose your class",
   "summary": "Summary",
@@ -27,6 +54,8 @@
   "available-dates": "Available dates",
   "search-dates": "Search dates",
   "addres-info": "We are not storing your address, but we will use this information to offer the best possible dates and schedules to study.",
+  "validating-email": "We are validating your email...",
+  "email-validated": "Nice email!",
   "email-info": "We will use it to give you access to your account.",
   "phone-info": "We will contact you via phone call only if necessary. (optional)",
   "already-adquired-plan-title": "You already acquired this plan",
@@ -44,14 +73,34 @@
   "signing-for": "You are signing up for",
   "getting-for": "You are getting",
   "already-have-account": "Already have an account?",
+  "no-have-account": "You don't have an account?",
   "login-here": "Login here.",
-  "start-free-course": "Start free course",
+  "register-here": "Register here.",
+  "start-free-course": "Start Learning",
+  "free": "Free",
+  "totally_free": "Totally free",
+  "free_trial": "Free trial",
   "monthly_payment": "Monthly payment",
   "quarterly_payment": "Quarterly payment",
   "half_yearly_payment": "Half yearly payment",
   "yearly_payment": "Yearly payment",
   "one_payment": "One payment",
   "many_months_payment": "{{qty}} months payment",
+  "our_plans": "Our plans",
+  "join-cohort": {
+    "cta": {
+      "lesson": "Join cohort to get access to this lesson",
+      "exercise": "Join cohort to get access to this exercise",
+      "project": "Join cohort to get access to this project",
+      "generic": "Join cohort to get access to this {{type}}"
+    },
+    "description": "Click the button below to join the cohort and access the program's content.",
+    "button": "Join cohort"
+  },
+  "transaction-denied": "Transaction denied",
+  "payment-not-processed": "Payment could not be processed",
+  "card-declined": "The card was declined, please try again with another card or contact your bank",
+  "payment-error": "An unexpected error occurred during the payment process, please contact support",
   "info": {
     "this-plan-includes": "This plan includes",
     "will-pay-monthly": "You will pay ${{price}} dollars {{qty_months}} times, for a total of ${{total_amount}}. The first payment will be today and the next payment will be {{next_month}}.",
@@ -62,9 +111,13 @@
     "will-pay-per-half-year": "You will subscribe and pay ${{price}} dollars every half year",
     "will-pay-per-year": "You will subscribe and pay ${{price}} dollars every year",
     "free": "Totally free",
+    "free-trial-period": "Free trial for {{qty}} {{period}}",
     "trial": "Trial for 1 month",
     "trial-week": "Trial for 1 week",
     "monthly": "Monthly",
+    "one-time-payment": "one-time payment",
+    "one-time-connector": "One-time payment of ${{value}} dollars",
+    "installments": "Installments",
     "quarterly": "Quarterly",
     "half-yearly": "Half yearly",
     "yearly": "Yearly",
@@ -75,6 +128,7 @@
     "owner_name-min": "Owner name is too short",
     "card_number-required": "Card number is required",
     "exp-required": "Expiration date is required",
+    "exp-min": "Please specify a valid expiration date",
     "cvc-required": "CVC is required",
     "short-input": "Too Short!",
     "long-input": "Too Long!",
@@ -86,7 +140,7 @@
     "email-required": "Email is required",
     "confirm-email-required": "Confirm Email is required",
     "confirm-email-not-match": "Emails don't match",
-    "termns-and-conditions-required": "I accept to receive information to my email about coding workshops, events, courses, and other marketing materials. We'll never share your email,"
+    "termns-and-conditions-required": "I agree to receive information in my email about coding workshops, events, courses, and other marketing materials. We'll never share your email,"
   },
   "no-date-available": "We currently have no dates available for the location entered",
   "alert-message": {
@@ -108,7 +162,23 @@
   "resend": "Resend",
   "mentorship-bundle-title": "Mentorship sessions bundle",
   "event-bundle-title": "Event bundle",
+  "upgrade-a-plan": "Upgrade a plan",
+  "take-me-there": "Take me there",
   "consumables": {
+    "already-have-it": "Already have it",
+    "consumable-event-not-available": "This event is not available for your subscription",
+    "consumable-mentorship-not-available": "This mentorship is not available for your subscription",
+    "full-plan": "Full plan",
+    "basic-plan": "Basic plan",
+    "ran-out-of-events": "You ran out of events",
+    "ran-out-of-events-text": "You can purchase a event access bundle or purchase a plan here:",
+    "and-get-event-access": "And join to more events",
+    "purchase-one-or-more-events": "Purchase one or more event access",
+    "ran-out-of-mentorships": "You ran out of mentorships",
+    "ran-out-of-mentorships-text": "You can purchase a mentoring session bundle or purchase a plan here:",
+    "and-get-mentorship-access": "And get more mentorships",
+    "purchase-one-or-more-sessions": "Purchase one or more sessions",
+    "avoid-monthly-commitment": "Avoid monthly commitment",
     "select-bundle": "Select your bundle:",
     "change-my-selection": "Change my selection",
     "purchase-completed-title": "You have successfully completed the purchase",
@@ -130,5 +200,150 @@
     "cohort-connector": "Cohort: {{name}}",
     "subscription-not-found": "Subscription not found",
     "no-plan-found-for-service": "You don't have any subscription related to the following services:"
+  },
+  "get-premium": "Get Premium",
+  "pricing": {
+    "already-have-plan": "You already have it",
+    "monthly-plans": [{
+      "plan_slug": "basic",
+      "plan_id": "p-0-trial",
+      "title": "Basic",
+      "currency": {"code": "USD", "name": "US Dollar"},
+      "trial_duration": 0,
+      "trial_duration_unit": "MONTH",
+      "price": 0,
+      "price_text": "Free",
+      "period": "FREE",
+      "period_label": "",
+      "isFreeTier": true,
+      "planType": "original",
+      "type": "FREE"
+    },{
+      "plan_slug": "with-feedback",
+      "plan_id": "p-50",
+      "title": "Monthly payment",
+      "currency": {"code": "USD", "name": "US Dollar"},
+      "trial_duration": 0,
+      "trial_duration_unit": "MONTH",
+      "price": 20,
+      "price_text": "$19.99",
+      "discount_text": "$150",
+      "period": "MONTH",
+      "period_label": "Per month",
+      "isFreeTier": false,
+      "planType": "suggested",
+      "type": "PAYMENT"
+    }],
+    "yearly-plans": [{
+      "plan_slug": "basic",
+      "plan_id": "p-0-trial",
+      "title": "Basic",
+      "currency": {"code": "USD", "name": "US Dollar"},
+      "trial_duration": 0,
+      "trial_duration_unit": "MONTH",
+      "price": 0,
+      "price_text": "Free",
+      "period": "FREE",
+      "period_label": "",
+      "isFreeTier": true,
+      "planType": "original",
+      "type": "FREE"
+    },{
+      "plan_slug": "with-feedback",
+      "plan_id": "p-480",
+      "title": "Yearly payment",
+      "currency": {"code": "USD", "name": "US Dollar"},
+      "trial_duration": 0,
+      "trial_duration_unit": "MONTH",
+      "price": 200,
+      "price_text": "$15.99",
+      "period": "YEAR",
+      "period_label": "Per month",
+      "isFreeTier": false,
+      "planType": "suggested",
+      "type": "PAYMENT"
+    }],
+    "basic-plan": {
+      "type": "Fly Solo",
+      "hook-message": "Try the full bootcamp experience for free and decide later",
+      "title": "No credit card required",
+      "description": "Start learning and discover our amazing content and benefits",
+      "button-title": "Start for free",
+      "service_items": {
+        "items": [{
+          "label": "1 Live workshop"
+        },
+        {
+          "label": "1 One-on-one mentoring session"
+        }]
+      },
+      "featured_info": [{
+        "service": {
+          "slug": "full-access-to-content",
+          "title": "Full access to content",
+          "icon": "content"
+        },
+        "features": [{ "description": "Hundreds of interactive exercises, projects, and lessons are available thanks to <a style=\"text-decoration: underline;\" target=\"__blank\" href='https://learnpack.co' >LearnPack</a>, our interactive engine." }]
+      },{
+        "service": {
+          "slug": "access-to-courses",
+          "title": "Access to courses",
+          "icon": "courses"
+        },
+        "features": [{ "description": "We offer a diverse range of courses across various technologies, providing you with opportunities to enhance your existing skills or delve into new ones." }]
+      },{
+        "service": {
+          "slug": "ai-interaction",
+          "title": "Try our AI interaction",
+          "icon": "message"
+        },
+        "features": [{ "description": "Try our internally trained AI models which can constantly review your code and give you feedback, advice as you code, and more." }]
+      }]
+    },
+    "premium-plan": {
+      "type": "Live & with feedback",
+      "hook-message": "Learn at your own pace with feedback and live events",
+      "title": "Premium member",
+      "description": "All the content you need to become a hireable developer",
+      "button-title": "Get Plan",
+      "service_items": {
+        "title": "Everything on Fly Solo plus...",
+        "items": [{
+          "label": "10 Live workshops p/mo"
+        },
+        {
+          "label": "2 One-on-one Mentoring sessions p/mo"
+        }]
+      },
+      "featured_info": [{
+        "service": {
+          "slug": "live-learning",
+          "title": "Live learning",
+          "icon": "video"
+        },
+        "features": [{ "description": "We have many workshops and Live Events hosted by experts every week." }]
+      },{
+        "service": {
+          "slug": "ai-feedback-support",
+          "title": "AI Feedback & support",
+          "icon": "message"
+        },
+        "features": [{ "description": "Our internally trained AI models will constantly review your code and give you feedback, advice as you code and more. Plus we have a technical support chat 24/7." }]
+      },{
+        "service": {
+          "slug": "access-to-community",
+          "title": "Access to community",
+          "icon": "community"
+        },
+        "features": [{ "description": "We have many workshops and Live Events hosted by experts every week." }]
+      },{
+        "service": {
+          "slug": "course-certificates",
+          "title": "Course certificates",
+          "icon": "certificate"
+        },
+        "features": [{ "description": "Earn verifiable certificates as you complete each of the courses." }]
+      }]
+    }
   }
 }

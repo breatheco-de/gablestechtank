@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { Avatar, AvatarGroup, Box, Button, Input, InputGroup, InputRightElement, useColorModeValue, useToast } from '@chakra-ui/react';
+import { Avatar, AvatarGroup, Box, Button, Image, Input, InputGroup, InputRightElement, useColorModeValue, useToast } from '@chakra-ui/react';
 import useTranslation from 'next-translate/useTranslation';
 import { useRouter } from 'next/router';
 import PropTypes from 'prop-types';
@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import useStyle from '../../hooks/useStyle';
 import Heading from '../Heading';
 import Icon from '../Icon';
-import Image from '../Image';
 import Link from '../NextChakraLink';
 import Text from '../Text';
 import bc from '../../services/breathecode';
@@ -67,34 +66,45 @@ function MentoringFree({
     }
   }, [allMentorsAvailable]);
 
-  const handleService = (service) => {
-    bc.mentorship({
-      services: service.slug,
-      status: 'ACTIVE',
-      syllabus: slug,
-    }).getMentor()
-      .then((res) => {
-        setProgramMentors(res.data);
-        setTimeout(() => {
-          setMentoryProps({ ...mentoryProps, service });
-          setSavedChanges({ ...savedChanges, service });
-        }, 50);
-      })
-      .catch(() => {
-        toast({
-          position: 'top',
-          title: 'Error',
-          description: t('alert-message:error-finding-mentors'),
-          status: 'error',
-          duration: 7000,
-          isClosable: true,
-        });
-      });
+  const manageMentorsData = (service, data) => {
+    setProgramMentors(data);
+    setTimeout(() => {
+      setMentoryProps({ ...mentoryProps, service });
+      setSavedChanges({ ...savedChanges, service });
+    }, 50);
   };
+
+  const handleService = async (service) => {
+    try {
+      if (allMentorsAvailable.length > 0) {
+        const mentorsByService = allMentorsAvailable.filter((mentor) => mentor.services.some((s) => s.slug === service.slug));
+        manageMentorsData(service, mentorsByService);
+      } else {
+        const res = await bc.mentorship({
+          services: service.slug,
+          status: 'ACTIVE',
+          syllabus: slug,
+          academy: service?.academy?.id,
+        }).getMentor();
+        manageMentorsData(service, res.data);
+      }
+    } catch (e) {
+      toast({
+        position: 'top',
+        title: 'Error',
+        description: t('alert-message:error-finding-mentors'),
+        status: 'error',
+        duration: 7000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const servicesWithMentorsAvailable = servicesFiltered.filter((service) => allMentorsAvailable.some((mentor) => mentor.services.some((mentServ) => mentServ.slug === service.slug)));
+
   return (
     <Box
       position="relative"
-      backgroundColor={useColorModeValue('yellow.light', 'featuredDark')}
       width={width}
       height="auto"
       borderWidth="0px"
@@ -152,7 +162,7 @@ function MentoringFree({
                 {t('supportSideBar.mentors-available', { count: allMentorsAvailable.length })}
               </Text>
             </Box>
-            <Button variant="default" onClick={() => setOpen(true)}>
+            <Button variant="link" fontSize="14px" onClick={() => setOpen(true)}>
               {t('supportSideBar.schedule-button')}
               <Icon icon="longArrowRight" width="24px" height="10px" color="currentColor" />
             </Button>
@@ -179,7 +189,7 @@ function MentoringFree({
                   ) : ''}
                 </Box>
                 {mentoryProps?.service && (
-                  <Box display="flex" alignItems="center" fontSize="18px" fontWeight={700} gridGap="10px" padding="0 10px" margin="10px 0 0px 0">
+                  <Box display="flex" alignItems="center" fontSize="18px" fontWeight={700} gridGap="10px" padding="0 10px" margin="10px 0 0px 0" style={{ textWrap: 'nowrap' }}>
                     <Box>
                       {t('mentorship.you-have')}
                     </Box>
@@ -210,7 +220,7 @@ function MentoringFree({
                       height="40px"
                       objectFit="cover"
                       style={{ minWidth: '40px', width: '40px !important', height: '40px !important' }}
-                      styleImg={{ borderRadius: '50px' }}
+                      borderRadius="50%"
                     />
                     <Box>
                       <Box fontWeight="700" fontSize="15px" color={useColorModeValue('gray.900', 'white')} letterSpacing="0.05em">
@@ -237,7 +247,7 @@ function MentoringFree({
                       </InputRightElement>
                     </InputGroup>
                     <Box maxHeight="10rem" width="100%" overflow="auto" borderBottomRadius="0.375rem">
-                      {servicesFiltered.length > 0 ? servicesFiltered.map((service) => (
+                      {servicesWithMentorsAvailable.length > 0 ? servicesWithMentorsAvailable.map((service) => (
                         <Box borderTop="1px solid" cursor="pointer" onClick={() => handleService(service)} borderColor={borderColor} py="14px" background={commonBackground} width="100%" px="22px" _hover={{ background: useColorModeValue('featuredLight', 'gray.700') }}>
                           {service.name}
                         </Box>
@@ -266,7 +276,6 @@ function MentoringFree({
                               <Box as="hr" borderColor="gray.300" margin="0 18px" />
                             )}
                             <Box display="flex" gridGap="18px" flexDirection="row" py="14px" width="100%" px="18px" _hover={{ background: useColorModeValue('featuredLight', 'gray.700') }}>
-                              {/* onClick={() => { setMentoryProps({ ...mentoryProps, mentor }); setSavedChanges({ ...savedChanges, mentor }); }} */}
                               <Image
                                 src={mentor?.user.profile?.avatar_url}
                                 alt={`${mentor?.user?.first_name} ${mentor?.user?.last_name}`}
@@ -274,7 +283,7 @@ function MentoringFree({
                                 height="78px"
                                 objectFit="cover"
                                 style={{ minWidth: '78px', width: '78px !important', height: '78px !important' }}
-                                styleImg={{ borderRadius: '50px' }}
+                                borderRadius="50%"
                               />
                               <Box display="flex" flexDirection="column" width="100%">
                                 <Box fontSize="15px" fontWeight="600">

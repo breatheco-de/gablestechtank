@@ -1,0 +1,74 @@
+{
+  "back-to": "Back to assignments",
+  "relevant-activities": "Relevant Activities",
+  "attendance": "Attendance",
+  "workshops": "Workshops",
+  "deliverables": "Deliverables",
+  "no-workshops-attendance": "Student has not attended to any workshops yet.",
+  "no-task": "This exercise does not have a task yet",
+  "deliverables-section": {
+    "lessons": "Lessons completed",
+    "projects": "Projects completed",
+    "exercises": "Completed LearnPack Exercies"
+  },
+  "educational-status": "Educational Status",
+  "filter": {
+    "activity": "Activity",
+    "date": "Date"
+  },
+  "activities-section": {
+    "title": "Activities",
+    "no-activities": "No activities found",
+    "activities": {
+      "invite_created": "Invite created",
+      "invite_status_updated": "Invite status updated",
+      "survey": "nps survey answered",
+      "login": "Breathecode login",
+      "open_syllabus_module": "Open syllabus module",
+      "read_assignment": "Read assignment",
+      "assignment_review_status_updated": "Assignment review status updated",
+      "assignment_status_updated": "Assignment status updated",
+      "event_checkin_created": "Event chekin created",
+      "event_checkin_assisted": "Event chekin assisted",
+      "bag_created": "Bag created",
+      "checkout_completed": "Checkout completed",
+      "mentoring_session_scheduled": "Mentoring session scheduled",
+      "mentorship_session_checkin": "Mentoring session checkin",
+      "mentorship_session_checkout": "Mentoring session checkout"
+    }
+  },
+  "analitics": {
+    "total-mentorships": "Total mentorships",
+    "projects-completed": "Projects completed",
+    "percentage-attendance": "% of attendance",
+    "completed-learnpack": "Completed LearnPack exercises",
+    "nps": "NPS"
+  },
+  "project-status": {
+    "approved": "Approved",
+    "pending": "Pending",
+    "ignored": "Ignored",
+    "rejected": "Rejected"
+  },
+  "lesson-status": {
+    "completed": "Completed",
+    "unread": "Unread",
+    "started": "Started",
+    "not-opened": "Not opened"
+  },
+  "attendance-status": {
+    "attended": "Attended",
+    "absent": "Absent",
+    "not-taken": "Not taken",
+    "no-info": "No information"
+  },
+  "event-status": {
+    "event_checkin_assisted": "Event Attendance",
+    "event_checkin_created": "Event Registration"
+  },
+  "exercise-status": {
+    "completed": "Marked as completed",
+    "not-opened": "Not opened",
+    "not-started": "Not started"
+  }
+}

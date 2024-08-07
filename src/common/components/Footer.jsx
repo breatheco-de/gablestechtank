@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Text,
@@ -15,20 +15,25 @@ import {
 import { CheckIcon } from '@chakra-ui/icons';
 import useTranslation from 'next-translate/useTranslation';
 import PropTypes from 'prop-types';
+import ReCAPTCHA from 'react-google-recaptcha';
 import NextChakraLink from './NextChakraLink';
 import Icon from './Icon';
 import AlertMessage from './AlertMessage';
 import useStyle from '../hooks/useStyle';
 import bc from '../services/breathecode';
 import logoData from '../../../public/logo.json';
+import { GithubIcon, LogoIcon, YoutubeIcon } from './Icon/components';
+import { log } from '../../utils/logging';
 
 function Footer({ pageProps }) {
+  const captcha = useRef(null);
   const { t } = useTranslation('footer');
   const { hexColor } = useStyle();
   const [email, setEmail] = useState('');
   const [formStatus, setFormStatus] = useState('');
 
   const copyrightName = pageProps?.existsWhiteLabel ? logoData.name : '4Geeks';
+  const actualYear = new Date().getFullYear();
   const iconogram = t('iconogram', {}, { returnObjects: true });
 
   const hideDivider = pageProps?.hideDivider === true;
@@ -56,10 +61,10 @@ function Footer({ pageProps }) {
             >
               <Flex justifyContent="space-around">
                 <Link key="github" href="https://github.com/breatheco-de" target="_blank" rel="noopener noreferrer">
-                  <Icon icon="github" width="23px" height="23px" />
+                  <GithubIcon width="23px" height="23px" />
                 </Link>
                 <Link key="youtube" href="https://www.youtube.com/user/alesanchezr" target="_blank" rel="noopener noreferrer">
-                  <Icon icon="youtube" width="23px" height="23px" color={hexColor.black} />
+                  <YoutubeIcon width="23px" height="23px" color={hexColor.black} />
                 </Link>
               </Flex>
             </Box>
@@ -69,7 +74,7 @@ function Footer({ pageProps }) {
               key="logo"
               width={['100%', '50%', '25%', '25%']}
             >
-              <Icon style={{ margin: 'auto' }} icon="4GeeksIcon" width="150px" height="60px" />
+              <LogoIcon style={{ margin: 'auto' }} width="150px" height="60px" />
             </Box>
             <Box
               key="searchbar"
@@ -80,16 +85,21 @@ function Footer({ pageProps }) {
             >
               {formStatus === '' ? (
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    bc.marketing().lead({ email })
+                    const token = await captcha.current.executeAsync();
+                    bc.marketing().lead({
+                      email,
+                      token,
+                      utm_url: window?.location?.href,
+                    })
                       .then((success) => {
-                        console.log(success);
+                        log(success);
                         if (success === undefined) setFormStatus('error');
                         else setFormStatus('success');
                       }).catch((err) => {
                         setFormStatus('error');
-                        console.log(err);
+                        log(err);
                       });
                   }}
                 >
@@ -122,7 +132,15 @@ function Footer({ pageProps }) {
                     </InputRightElement>
 
                   </InputGroup>
-
+                  {process.env.CAPTCHA_KEY && (
+                    <Box mt="15px">
+                      <ReCAPTCHA
+                        ref={captcha}
+                        sitekey={process.env.CAPTCHA_KEY}
+                        size="invisible"
+                      />
+                    </Box>
+                  )}
                 </form>
               ) : (
                 <AlertMessage
@@ -152,9 +170,13 @@ function Footer({ pageProps }) {
                 <Box as="ul" role="presentation" textAlign={{ base: 'left', md: 'center' }}>
                   {t('company.items', {}, { returnObjects: true }).map((item) => (
                     <Box as="li" key={`${item.label}-${item.href}`} pb="6px" role="presentation" display="flex">
-                      <NextChakraLink href={item.href} fontSize="0.875rem">
-                        {item.label.toUpperCase()}
-                      </NextChakraLink>
+                      {item.href === '#' ? (
+                        <Box fontSize="0.875rem" textTransform="uppercase">{item.label}</Box>
+                      ) : (
+                        <NextChakraLink href={item.href} fontSize="0.875rem" textTransform="uppercase">
+                          {item?.label}
+                        </NextChakraLink>
+                      )}
                     </Box>
                   ))}
                 </Box>
@@ -327,15 +349,18 @@ function Footer({ pageProps }) {
         // alignItems="center"
         textAlign="center"
       >
-        <Text marginBottom={['20px', '20px', '0', '0']} fontSize="sm">{t('copyright', { name: copyrightName })}</Text>
+        <Text marginBottom={['20px', '20px', '0', '0']} fontSize="sm">{t('copyright', { name: copyrightName, year: actualYear })}</Text>
         <Flex
           wrap={['wrap', 'wrap', 'nowrap', 'nowrap']}
-          justifyContent="center"
-          width={['100%', '100%', '35%', '40%']}
+          justifyContent={['center', 'center', 'space-between', 'space-between']}
+          width={['100%', '100%', '35%', '25%']}
         // alignItems="center"
         >
           <NextChakraLink href={t('terms.href')}>
             <Text fontSize="sm">{t('terms.label')}</Text>
+          </NextChakraLink>
+          <NextChakraLink href={t('privacy.href')}>
+            <Text fontSize="sm">{t('privacy.label')}</Text>
           </NextChakraLink>
         </Flex>
       </Flex>

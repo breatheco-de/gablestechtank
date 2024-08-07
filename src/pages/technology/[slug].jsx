@@ -3,23 +3,22 @@ import {
   Box, Flex, useColorModeValue,
 } from '@chakra-ui/react';
 import PropTypes from 'prop-types';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
+import getT from 'next-translate/getT';
 import Text from '../../common/components/Text';
 import { toCapitalize } from '../../utils';
-import { WHITE_LABEL_ACADEMY } from '../../utils/variables';
 import Heading from '../../common/components/Heading';
 import ProjectList from '../../js_modules/projects/ProjectList';
 
 export const getStaticPaths = async ({ locales }) => {
-  const resp = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/academy/technology?limit=1000&academy=${WHITE_LABEL_ACADEMY}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Token ${process.env.BC_ACADEMY_TOKEN}`,
-      Academy: 4,
-    },
-  });
-  const data = resp?.status > 400 ? {} : await resp?.json();
+  const assetList = await import('../../lib/asset-list.json')
+    .then((res) => res.default)
+    .catch(() => []);
 
-  const paths = data?.results?.length > 0 ? data.results.flatMap((res) => locales.map((locale) => ({
+  const data = assetList.landingTechnologies;
+
+  const paths = data?.length > 0 ? data.flatMap((res) => locales.map((locale) => ({
     params: {
       slug: res.slug,
     },
@@ -27,59 +26,48 @@ export const getStaticPaths = async ({ locales }) => {
   }))) : [];
 
   return {
-    fallback: false,
+    fallback: true,
     paths,
   };
 };
 
 export const getStaticProps = async ({ params, locale, locales }) => {
+  const t = await getT(locale, 'technologies');
   const { slug } = params;
-  const currentLang = locale === 'en' ? 'us' : 'es';
+  const langList = {
+    en: 'us',
+    es: 'es',
+  };
 
-  const responseTechs = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/academy/technology?slug=${slug}&limit=1000&academy=${WHITE_LABEL_ACADEMY}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Token ${process.env.BC_ACADEMY_TOKEN}`,
-      Academy: 4,
-    },
-  });
-  const techs = await responseTechs.json(); // array of objects
-  const technologyData = techs.results.find((tech) => tech.slug === slug);
-  const responseAssetsList = await fetch(`${process.env.BREATHECODE_HOST}/v1/registry/asset?limit=9000&technologies=${slug}`);
-  const allAssetList = await responseAssetsList.json();
+  const assetList = await import('../../lib/asset-list.json')
+    .then((res) => res.default)
+    .catch(() => []);
 
-  if (responseAssetsList?.status >= 400) {
-    return {
-      notFound: true,
-    };
-  }
+  const allTechnologiesList = assetList.landingTechnologies;
+  const technologyData = allTechnologiesList.find((tech) => tech?.slug === slug && tech?.lang === locale) || {};
+  const data = technologyData?.assets?.length > 0 ? technologyData.assets.filter((l) => {
+    const assetType = l?.asset_type.toUpperCase();
 
-  const data = allAssetList.results.filter((l) => {
-    if (l?.asset_type.toUpperCase() === 'LESSON') {
-      return true;
-    }
-    if (l?.asset_type.toUpperCase() === 'PROJECT') {
-      return true;
-    }
-    if (l?.asset_type.toUpperCase() === 'EXERCISE') {
-      return true;
-    }
+    if (assetType === 'LESSON') return true;
+    if (assetType === 'PROJECT') return true;
+    if (assetType === 'EXERCISE') return true;
     if (l?.category) {
       return l?.category?.slug === 'how-to' || l?.category?.slug === 'como';
     }
     return false;
-  });
+  }) : [];
 
   const ogUrl = {
     en: `/technology/${slug}`,
     us: `/technology/${slug}`,
   };
+  const dataByCurrentLanguage = data.filter((l) => l?.lang === langList?.[locale] || l.lang === locale);
 
   return {
     props: {
       seo: {
-        title: technologyData?.title,
-        description: '',
+        title: technologyData?.title || '',
+        description: t('seo.description', { technology: technologyData?.title }),
         image: technologyData?.icon_url || '',
         pathConnector: `/technology/${slug}`,
         url: ogUrl.en,
@@ -88,10 +76,9 @@ export const getStaticProps = async ({ params, locale, locales }) => {
         locales,
         locale,
       },
-      fallback: false,
       technologyData,
-      data: data.filter((project) => project.lang === currentLang).map(
-        (l) => ({ ...l, difficulty: l.difficulty?.toLowerCase() || null }),
+      data: dataByCurrentLanguage.map(
+        (l) => ({ ...l, difficulty: l?.difficulty?.toLowerCase() || null }),
       ),
     },
   };
@@ -99,8 +86,15 @@ export const getStaticProps = async ({ params, locale, locales }) => {
 
 function LessonByTechnology({ data, technologyData }) {
   const { t } = useTranslation('technologies');
+  const router = useRouter();
 
-  return (
+  useEffect(() => {
+    if (!technologyData?.slug || data?.length === 0) {
+      router.push('/');
+    }
+  }, [data]);
+
+  return technologyData?.slug && data?.length > 0 && (
     <Box
       height="100%"
       flexDirection="column"
@@ -108,7 +102,8 @@ function LessonByTechnology({ data, technologyData }) {
       alignItems="center"
       pt="3rem"
       maxWidth="1280px"
-      margin="0 auto"
+      margin="3rem auto 0 auto"
+      padding="0 10px"
     >
       <Text
         as="h1"
@@ -118,11 +113,11 @@ function LessonByTechnology({ data, technologyData }) {
         fontWeight="700"
         paddingBottom="6px"
       >
-        {t('landing-technology.title', { technology: toCapitalize(technologyData.title) })}
+        {t('landing-technology.title', { technology: toCapitalize(technologyData?.title) })}
       </Text>
       <Box flex="1" pb="2rem">
         <Heading as="span" size="xl">
-          {t('landing-technology.subTitle', { technology: toCapitalize(technologyData.title) })}
+          {t('landing-technology.subTitle', { technology: toCapitalize(technologyData?.title) })}
         </Heading>
 
         <Text
@@ -132,7 +127,7 @@ function LessonByTechnology({ data, technologyData }) {
           display="flex"
           textAlign="left"
         >
-          {technologyData?.description || t('description', { technology: technologyData.title })}
+          {technologyData?.description || t('description', { technology: technologyData?.title })}
         </Text>
       </Box>
 

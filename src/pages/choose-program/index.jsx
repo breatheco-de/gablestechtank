@@ -1,31 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Flex, Box, Button, useToast, Skeleton, useColorModeValue,
 } from '@chakra-ui/react';
 import useTranslation from 'next-translate/useTranslation';
 import { useRouter } from 'next/router';
 import getT from 'next-translate/getT';
-import { useFlags, useLDClient } from 'launchdarkly-react-client-sdk';
 import ChooseProgram from '../../js_modules/chooseProgram';
 import Text from '../../common/components/Text';
-import bc from '../../common/services/breathecode';
 import asPrivate from '../../common/context/PrivateRouteWrapper';
+import bc from '../../common/services/breathecode';
 import useAuth from '../../common/hooks/useAuth';
 import Icon from '../../common/components/Icon';
 import Module from '../../common/components/Module';
-import { isPlural, removeStorageItem, sortToNearestTodayDate, syncInterval } from '../../utils';
+import { calculateDifferenceDays, getStorageItem, isPlural, isValidDate, removeStorageItem, setStorageItem, sortToNearestTodayDate, syncInterval } from '../../utils';
+import { reportDatalayer } from '../../utils/requests';
 import Heading from '../../common/components/Heading';
 import { usePersistent } from '../../common/hooks/usePersistent';
+import useCohortHandler from '../../common/hooks/useCohortHandler';
 import useLocalStorageQuery from '../../common/hooks/useLocalStorageQuery';
-import useStyle from '../../common/hooks/useStyle';
-import GridContainer from '../../common/components/GridContainer';
-import packageJson from '../../../package.json';
 import LiveEvent from '../../common/components/LiveEvent';
 import NextChakraLink from '../../common/components/NextChakraLink';
 import useProgramList from '../../common/store/actions/programListAction';
 import handlers from '../../common/handlers';
 import useSubscriptionsHandler from '../../common/store/actions/subscriptionAction';
 import { PREPARING_FOR_COHORT } from '../../common/store/types';
+import SimpleModal from '../../common/components/SimpleModal';
+import ReactPlayerV2 from '../../common/components/ReactPlayerV2';
+import useStyle from '../../common/hooks/useStyle';
+import SupportSidebar from '../../common/components/SupportSidebar';
+import Feedback from '../../common/components/Feedback';
+import LanguageSelector from '../../common/components/LanguageSelector';
 
 export const getStaticProps = async ({ locale, locales }) => {
   const t = await getT(locale, 'choose-program');
@@ -45,9 +49,9 @@ export const getStaticProps = async ({ locale, locales }) => {
 };
 
 function chooseProgram() {
-  const { t } = useTranslation('choose-program');
+  const { t, lang } = useTranslation('choose-program');
   const [, setProfile] = usePersistent('profile', {});
-  const [, setCohortSession] = usePersistent('cohortSession', {});
+  const { setCohortSession } = useCohortHandler();
   const [subscriptionProcess] = usePersistent('subscription-process', null);
   const [invites, setInvites] = useState([]);
   const [showInvites, setShowInvites] = useState(false);
@@ -58,16 +62,30 @@ function chooseProgram() {
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const { fetchSubscriptions } = useSubscriptionsHandler();
   const [cohortTasks, setCohortTasks] = useState({});
+  const [hasCohortWithAvailableAsSaas, setHasCohortWithAvailableAsSaas] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
-  const { isLoading: userLoading, user, choose } = useAuth();
-  const { lightColor } = useStyle();
+  const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+  const [lateModalProps, setLateModalProps] = useState({
+    isOpen: false,
+    data: [],
+  });
+  const [mentorshipServices, setMentorshipServices] = useState({
+    isLoading: true,
+    data: [],
+  });
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const toast = useToast();
-  const ldClient = useLDClient();
-  const flags = useFlags();
   const commonStartColor = useColorModeValue('gray.300', 'gray.light');
   const commonEndColor = useColorModeValue('gray.400', 'gray.400');
-  const TwelveHours = 720;
+  const { hexColor } = useStyle();
+  const isClosedLateModal = getStorageItem('isClosedLateModal');
+  const TwelveHoursInMinutes = 720;
+  const cardColumnSize = 'repeat(auto-fill, minmax(17rem, 1fr))';
+  const welcomeVideoLinks = {
+    es: 'https://www.youtube.com/embed/TgkIpTZ75NM',
+    en: 'https://www.youtube.com/embed/ijEp5XHm7qo',
+  };
 
   const fetchAdmissions = () => bc.admissions().me();
 
@@ -93,10 +111,50 @@ function chooseProgram() {
     return members;
   };
 
+  const getAllSyllabus = () => {
+    const syllabus = [];
+    const allCohorts = dataQuery?.cohorts || [];
+
+    allCohorts.forEach(({ cohort }) => {
+      if (!syllabus.includes(cohort.syllabus_version.slug)) syllabus.push(cohort.syllabus_version.slug);
+    });
+    return syllabus;
+  };
+
+  const allSyllabus = useMemo(getAllSyllabus, [dataQuery]);
+
+  const getServices = async (userRoles) => {
+    if (userRoles?.length > 0) {
+      const mentorshipPromises = await userRoles.map((role) => bc.mentorship({ academy: role?.academy?.id }, true).getService()
+        .then((resp) => {
+          const data = resp?.data;
+          if (data !== undefined && data.length > 0) {
+            return data.map((service) => ({
+              ...service,
+              academy: {
+                id: role?.academy.id,
+                available_as_saas: role?.academy?.available_as_saas,
+              },
+            }));
+          }
+          return [];
+        }));
+      const mentorshipResults = await Promise.all(mentorshipPromises);
+      const recopilatedServices = mentorshipResults.flat();
+
+      setMentorshipServices({
+        isLoading: false,
+        data: recopilatedServices,
+      });
+    }
+  };
+
   useEffect(() => {
     const cohorts = dataQuery?.cohorts;
     const cohortSubscription = cohorts?.find((item) => item?.cohort?.slug === subscriptionProcess?.slug);
     const members = cohortSubscription?.cohort?.slug ? getMembers(cohortSubscription) : [];
+
+    getServices(dataQuery?.roles);
     const cohortIsReady = cohorts?.length > 0 && cohorts?.some((item) => {
       const cohort = item?.cohort;
       const academy = cohort?.academy;
@@ -106,6 +164,25 @@ function chooseProgram() {
 
       return false;
     });
+    if (cohorts?.length > 0) {
+      const hasAvailableAsSaas = cohorts.some((elem) => elem.cohort.available_as_saas === true);
+      const cohortsSlugs = cohorts.map((elem) => elem.cohort.slug).join(',');
+      const cohortsAcademies = cohorts.map((elem) => elem.cohort.academy.slug).join(',');
+      const cohortWithFinantialStatusLate = cohorts.filter((elem) => elem.finantial_status === 'LATE' || elem.educational_status === 'SUSPENDED');
+      setLateModalProps({
+        isOpen: cohortWithFinantialStatusLate?.length > 0 && !isClosedLateModal,
+        data: cohortWithFinantialStatusLate,
+      });
+
+      setHasCohortWithAvailableAsSaas(hasAvailableAsSaas);
+      reportDatalayer({
+        dataLayer: {
+          available_as_saas: hasAvailableAsSaas,
+          cohorts: cohortsSlugs,
+          academies: cohortsAcademies,
+        },
+      });
+    }
 
     const revalidate = setTimeout(() => {
       if (subscriptionProcess?.status === PREPARING_FOR_COHORT) {
@@ -123,21 +200,30 @@ function chooseProgram() {
     }, 2000);
 
     return () => clearTimeout(revalidate);
-  }, [dataQuery?.cohorts]);
+  }, [isAuthenticated, dataQuery?.cohorts, dataQuery?.roles]);
 
   useEffect(() => {
     setSubscriptionLoading(true);
     fetchSubscriptions()
       .then((data) => {
         setSubscriptionData(data);
+        reportDatalayer({
+          dataLayer: {
+            event: 'subscriptions_load',
+            method: 'native',
+            plan_financings: data?.plan_financings?.filter((s) => s.status === 'ACTIVE').map((s) => s.plans.filter((p) => p.status === 'ACTIVE').map((p) => p.slug).join(',')).join(','),
+            subscriptions: data?.subscriptions?.filter((s) => s.status === 'ACTIVE').map((s) => s.plans.filter((p) => p.status === 'ACTIVE').map((p) => p.slug).join(',')).join(','),
+          },
+        });
       })
       .finally(() => setSubscriptionLoading(false));
   }, []);
 
-  const allSubscriptions = subscriptionData?.subscriptions
-    && subscriptionData?.plan_financings
-    && [...subscriptionData.subscriptions, ...subscriptionData.plan_financings]
-      .filter((subscription) => subscription?.plans?.[0]?.slug !== undefined);
+  const allSubscriptions = [
+    ...subscriptionData?.subscriptions || [],
+    ...subscriptionData?.plan_financings || [],
+  ];
+  // .filter((subscription) => subscription?.plans?.[0]?.slug !== undefined);
 
   useEffect(() => {
     if (subscriptionLoading === false && dataQuery && Object.values(cohortTasks)?.length > 0) {
@@ -148,10 +234,10 @@ function chooseProgram() {
           ...cohortTasks[value.cohort.slug],
           name: value.cohort.name,
           plan_financing: subscriptionData?.plan_financings?.find(
-            (sub) => sub.selected_cohort?.slug === value.cohort.slug,
+            (sub) => sub?.selected_cohort_set?.cohorts.some((cohort) => cohort?.slug === value.cohort.slug),
           ) || null,
           subscription: subscriptionData?.subscriptions?.find(
-            (sub) => sub.selected_cohort?.slug === value.cohort.slug,
+            (sub) => sub?.selected_cohort_set?.cohorts.some((cohort) => cohort?.slug === value.cohort.slug),
           ) || null,
           all_subscriptions: allSubscriptions,
           slug: value.cohort.slug,
@@ -162,36 +248,24 @@ function chooseProgram() {
     }
   }, [dataQuery, cohortTasks, subscriptionLoading]);
 
-  // console.log('cohorts', dataQuery?.cohorts);
-  // TOOD: usar available_as_saas
   useEffect(() => {
     if (dataQuery?.id && dataQuery?.cohorts?.length > 0) {
       dataQuery?.cohorts.map(async (item) => {
         if (item?.cohort?.slug) {
+          const isFinantialStatusLate = item?.finantial_status === 'LATE' || item?.educational_status === 'SUSPENDED';
           const { academy, syllabus_version: syllabusVersion } = item.cohort;
-
           const tasks = await bc.todo({ cohort: item?.cohort?.id }).getTaskByStudent();
-          const studentAndTeachers = await bc.cohort({
+          const studentAndTeachers = isFinantialStatusLate ? {} : await bc.cohort({
             role: 'TEACHER,ASSISTANT',
             cohorts: item?.cohort?.slug,
             academy: item?.cohort?.academy?.id,
           }).getMembers();
-          const teacher = studentAndTeachers?.data.filter((st) => st.role === 'TEACHER');
-          const assistant = studentAndTeachers?.data?.filter((st) => st.role === 'ASSISTANT');
-          if (tasks?.data?.length > 0) {
-            setCohortTasks((prev) => ({
-              ...prev,
-              [item?.cohort.slug]: {
-                ...handlers.handleTasks(tasks.data, true),
-                teacher,
-                assistant,
-              },
-            }));
-          }
-          if (tasks?.data?.length <= 0) {
-            const syllabus = await bc.syllabus().get(academy.id, syllabusVersion.slug, syllabusVersion.version);
-            handlers.getAssignmentsCount({ cohortProgram: syllabus?.data, taskTodo: tasks?.data })
-              .then((assignmentData) => {
+          const teacher = studentAndTeachers?.data?.filter((st) => st.role === 'TEACHER') || [];
+          const assistant = studentAndTeachers?.data?.filter((st) => st.role === 'ASSISTANT') || [];
+          const syllabus = await bc.syllabus().get(academy.id, syllabusVersion.slug, syllabusVersion.version);
+          handlers.getAssignmentsCount({ data: syllabus?.data, taskTodo: tasks?.data, cohortId: item?.cohort?.id })
+            .then((assignmentData) => {
+              if (item?.cohort?.slug) {
                 setCohortTasks((prev) => ({
                   ...prev,
                   [item?.cohort.slug]: {
@@ -200,8 +274,8 @@ function chooseProgram() {
                     assistant,
                   },
                 }));
-              });
-          }
+              }
+            });
         }
         return null;
       });
@@ -213,7 +287,11 @@ function chooseProgram() {
   useEffect(() => {
     bc.payment().events()
       .then(({ data }) => {
-        const eventsRemain = data.filter((l) => new Date(l.ending_at) - new Date() > 0).slice(0, 3);
+        const eventsRemain = data?.length > 0 ? data.filter((l) => {
+          if (isValidDate(l?.ended_at)) return new Date(l?.ended_at) - new Date() > 0;
+          if (isValidDate(l?.ending_at)) return new Date(l?.ending_at) - new Date() > 0;
+          return false;
+        }).slice(0, 3) : [];
         setEvents(eventsRemain);
       });
 
@@ -221,13 +299,19 @@ function chooseProgram() {
       upcoming: true,
     }).liveClass()
       .then((res) => {
-        const sortDateToLiveClass = sortToNearestTodayDate(res?.data, TwelveHours);
+        const validatedEventList = res?.data?.length > 0
+          ? res?.data?.filter((l) => isValidDate(l?.starting_at) && isValidDate(l?.ending_at))
+          : [];
+        const sortDateToLiveClass = sortToNearestTodayDate(validatedEventList, TwelveHoursInMinutes);
         const existentLiveClasses = sortDateToLiveClass?.filter((l) => l?.hash && l?.starting_at && l?.ending_at);
         setLiveClasses(existentLiveClasses);
       });
     syncInterval(() => {
       setLiveClasses((prev) => {
-        const sortDateToLiveClass = sortToNearestTodayDate(prev, TwelveHours);
+        const validatedEventList = prev?.length > 0
+          ? prev?.filter((l) => isValidDate(l?.starting_at) && isValidDate(l?.ending_at))
+          : [];
+        const sortDateToLiveClass = sortToNearestTodayDate(validatedEventList, TwelveHoursInMinutes);
         const existentLiveClasses = sortDateToLiveClass?.filter((l) => l?.hash && l?.starting_at && l?.ending_at);
         return existentLiveClasses;
       });
@@ -235,27 +319,17 @@ function chooseProgram() {
   }, []);
 
   useEffect(() => {
+    if (dataQuery?.date_joined) {
+      const cohortUserDaysCalculated = calculateDifferenceDays(dataQuery?.date_joined);
+      if (cohortUserDaysCalculated?.isRemainingToExpire === false && cohortUserDaysCalculated?.result <= 2) {
+        setIsWelcomeModalOpen(true);
+      }
+    }
+  }, [dataQuery]);
+  useEffect(() => {
     if (userID !== undefined) {
       setCohortSession({
         selectedProgramSlug: '/choose-program',
-        bc_id: userID,
-      });
-    }
-
-    if (user?.id && !userLoading) {
-      ldClient?.identify({
-        kind: 'user',
-        key: user?.id,
-        firstName: user?.first_name,
-        lastName: user?.last_name,
-        name: `${user?.first_name} ${user?.last_name}`,
-        email: user?.email,
-        id: user?.id,
-        language: router?.locale,
-        screenWidth: window?.screen?.width,
-        screenHeight: window?.screen?.height,
-        device: navigator?.userAgent,
-        version: packageJson.version,
       });
     }
   }, [userID]);
@@ -300,33 +374,68 @@ function chooseProgram() {
     return t('invite.singular-word', { invitesLength: invites?.length });
   };
 
-  const handleChoose = (cohort) => {
-    choose(cohort);
-    ldClient?.identify({
-      kind: 'user',
-      key: user?.id,
-      firstName: user?.first_name,
-      lastName: user?.last_name,
-      name: `${user?.first_name} ${user?.last_name}`,
-      email: user?.email,
-      id: user?.id,
-      language: router?.locale,
-      screenWidth: window?.screen?.width,
-      screenHeight: window?.screen?.height,
-      device: navigator?.userAgent,
-      version: packageJson.version,
-      cohort: cohort?.cohort_name,
-      cohortSlug: cohort?.cohort_slug,
-      cohortId: cohort?.id,
-      cohortStage: cohort?.stage,
-      academy: cohort?.academy_id,
-    });
-  };
-
   return (
     <Flex alignItems="center" flexDirection="row" mt="40px">
-      <GridContainer gridTemplateColumns="repeat(10, 1fr)" width="100%" margin="0 auto">
-        <Box gridColumn="2 / span 8">
+      <SimpleModal
+        isOpen={isWelcomeModalOpen}
+        onClose={() => setIsWelcomeModalOpen(false)}
+        style={{ marginTop: '10vh' }}
+        maxWidth="45rem"
+        borderRadius="13px"
+        headerStyles={{ textAlign: 'center' }}
+        title={t('dashboard:welcome-modal.title')}
+        bodyStyles={{ padding: 0 }}
+        closeOnOverlayClick={false}
+        leftButton={(
+          <Flex
+            position="absolute"
+            variant="unstyled"
+            top={5}
+            left={5}
+            alignItems="center"
+            justifyContent="center"
+            width="auto"
+            mb="1rem"
+          >
+            <LanguageSelector />
+          </Flex>
+        )}
+      >
+        <Box display="flex" flexDirection="column" gridGap="17px" padding="1.5rem 4%">
+          <Text size="13px" textAlign="center" style={{ textWrap: 'balance' }}>
+            {t('dashboard:welcome-modal.description')}
+          </Text>
+        </Box>
+        <Box padding="0 15px 15px">
+          <ReactPlayerV2
+            url={welcomeVideoLinks?.[lang] || welcomeVideoLinks?.en}
+            width="100%"
+            height="100%"
+            iframeStyle={{ borderRadius: '3px 3px 13px 13px' }}
+          />
+        </Box>
+      </SimpleModal>
+      <SimpleModal
+        maxWidth="30rem"
+        isOpen={lateModalProps.isOpen}
+        title={t('late-payment.title')}
+        onClose={() => {
+          setLateModalProps({ ...lateModalProps, isOpen: false });
+          setStorageItem('isClosedLateModal', true);
+        }}
+      >
+        <Text
+          size="md"
+          dangerouslySetInnerHTML={{
+            __html: t('late-payment.description', {
+              cohort_name: lateModalProps.data[0]?.cohort?.name,
+              academy_name: lateModalProps.data?.[0]?.cohort?.academy?.name,
+            }),
+          }}
+        />
+      </SimpleModal>
+      <Flex minHeight="81vh" flexDirection={{ base: 'column', md: 'row' }} gridGap="2rem" maxWidth="1200px" flexFlow={{ base: 'column-reverse', md: '' }} width="100%" margin="0 auto" padding={{ base: '0 10px', md: '0 40px' }}>
+        <Box flex={{ base: 1, md: 0.7 }}>
           <Flex flexDirection={{ base: 'column-reverse', md: 'row' }} gridGap={{ base: '1rem', md: '3.5rem' }} position="relative">
             <Box width="100%" flex={{ base: 1, md: 0.7 }}>
               <Heading
@@ -335,10 +444,6 @@ function chooseProgram() {
               >
                 {user?.first_name ? t('welcome-back-user', { name: user?.first_name }) : t('welcome')}
               </Heading>
-
-              <Text size="18px" color={lightColor} fontWeight={500} letterSpacing="0.02em" p="12px 0 30px 0">
-                {t('read-to-start-learning')}
-              </Text>
 
               {invites?.length > 0 && (
                 <Box margin="25px 0 0 0" display="flex" alignItems="center" justifyContent="space-between" padding="16px 20px" borderRadius="18px" width={['70%', '68%', '70%', '50%']} background="yellow.light">
@@ -409,39 +514,19 @@ function chooseProgram() {
                   />
                 );
               })}
-
-              {!isLoading && dataQuery?.cohorts > 0 && (
-                <NextChakraLink variant="buttonDefault" href="https://4geeksacademy.slack.com/" target="blank" rel="noopener noreferrer" display="flex" gridGap="10px" width="fit-content" padding="0.5rem 6px 0.5rem 8px">
-                  {t('join-our-community')}
-                  <Icon icon="slack" width="20px" height="20px" color="currentColor" />
-                </NextChakraLink>
-              )}
-            </Box>
-            <Box flex={{ base: 1, md: 0.3 }} zIndex={10} position={{ base: 'inherit', md: 'absolute' }} right={0} top={0}>
-              {flags?.appReleaseEnableLiveEvents && (
-                <LiveEvent
-                  featureLabel={t('common:live-event.title')}
-                  featureReadMoreUrl={t('common:live-event.readMoreUrl')}
-                  mainClasses={liveClasses?.length > 0 ? liveClasses : []}
-                  otherEvents={events}
-                  maxWidth={{ base: '100%', sm: '500px', md: '340px' }}
-                  minWidth={{ base: '100%', sm: '500px', md: '340px' }}
-                  margin="0 auto"
-                />
-              )}
             </Box>
           </Flex>
 
           <Box>
             {!isLoading && (
-              <ChooseProgram chooseList={dataQuery?.cohorts} handleChoose={handleChoose} />
+              <ChooseProgram chooseList={dataQuery?.cohorts} setLateModalProps={setLateModalProps} />
             )}
           </Box>
           {isRevalidating && (
             <Box
               display="grid"
               mt="1rem"
-              gridTemplateColumns="repeat(auto-fill, minmax(15rem, 1fr))"
+              gridTemplateColumns={cardColumnSize}
               gridColumnGap="4rem"
               gridRowGap="3rem"
               height="auto"
@@ -464,7 +549,7 @@ function chooseProgram() {
             <Box
               display="grid"
               mt="1rem"
-              gridTemplateColumns="repeat(auto-fill, minmax(15rem, 1fr))"
+              gridTemplateColumns={cardColumnSize}
               gridColumnGap="4rem"
               gridRowGap="3rem"
               height="auto"
@@ -484,7 +569,55 @@ function chooseProgram() {
             </Box>
           )}
         </Box>
-      </GridContainer>
+        <Flex flexDirection="column" gridGap="42px" flex={{ base: 1, md: 0.3 }}>
+          <Box zIndex={10}>
+            <LiveEvent
+              featureLabel={t('common:live-event.title')}
+              featureReadMoreUrl={t('common:live-event.readMoreUrl')}
+              mainClasses={liveClasses?.length > 0 ? liveClasses : []}
+              otherEvents={events}
+              margin="0 auto"
+              cohorts={dataQuery?.cohorts || []}
+            />
+          </Box>
+          <Box zIndex={10}>
+            {!mentorshipServices.isLoading && mentorshipServices?.data?.length > 0 && (
+              <SupportSidebar
+                allCohorts={dataQuery?.cohorts}
+                allSyllabus={allSyllabus}
+                services={mentorshipServices.data}
+                subscriptions={allSubscriptions}
+              />
+            )}
+          </Box>
+          <Feedback />
+
+          {dataQuery?.cohorts?.length > 0 && (
+            <NextChakraLink
+              href={!hasCohortWithAvailableAsSaas ? 'https://4geeksacademy.slack.com' : 'https://4geeks.slack.com'}
+              aria-label="4Geeks Academy community"
+              target="blank"
+              rel="noopener noreferrer"
+              display="flex"
+              alignItems="center"
+              gridGap="30px"
+              padding="1.2rem"
+              borderRadius="17px"
+              border="1px solid"
+              justifyContent="space-between"
+              borderColor={hexColor.borderColor}
+            >
+              <Flex gridGap="30px" alignItems="center">
+                <Icon icon="slack" width="20px" height="20px" />
+                <Text size="15px" fontWeight={700}>
+                  {t('sidebar.join-our-community')}
+                </Text>
+              </Flex>
+              <Icon icon="external-link" width="19px" height="18px" color="currentColor" />
+            </NextChakraLink>
+          )}
+        </Flex>
+      </Flex>
     </Flex>
   );
 }

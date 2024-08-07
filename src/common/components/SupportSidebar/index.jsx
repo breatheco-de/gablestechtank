@@ -1,55 +1,87 @@
-import { useEffect, memo } from 'react';
+import { useEffect, memo, useState } from 'react';
 import {
   useToast,
 } from '@chakra-ui/react';
 import useTranslation from 'next-translate/useTranslation';
-import { useFlags } from 'launchdarkly-react-client-sdk';
 import PropTypes from 'prop-types';
 import bc from '../../services/breathecode';
-import { usePersistent } from '../../hooks/usePersistent';
+// import { usePersistent } from '../../hooks/usePersistent';
 import Mentoring from './Mentoring';
 
-function SupportSidebar({ subscriptions, subscriptionData }) {
+function SupportSidebar({ allCohorts, allSyllabus, services, subscriptions, subscriptionData }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const [programServices, setProgramServices] = usePersistent('programServices', []);
-  const flags = useFlags();
+  const [programServices, setProgramServices] = useState({
+    list: [],
+    isFetching: true,
+  });
+
+  const filterByFinantialStatus = (list) => list.filter((service) => {
+    if (allCohorts.length > 0) {
+      return allCohorts.some((elem) => {
+        if (elem?.cohort?.academy?.id === service?.academy?.id && (elem?.finantial_status === 'LATE' || elem?.educational_status === 'SUSPENDED')) {
+          return false;
+        }
+        return true;
+      });
+    }
+    return true;
+  });
 
   useEffect(() => {
-    bc.mentorship().getService().then(({ data }) => {
-      if (data !== undefined && data.length > 0) {
-        setProgramServices(data);
-      }
-    }).catch(() => {
-      toast({
-        position: 'top',
-        title: 'Error',
-        description: t('alert-message:error-mentorship-service'),
-        status: 'error',
-        duration: 9000,
-        isClosable: true,
+    if (services?.length === 0) {
+      bc.mentorship().getService().then(({ data }) => {
+        const servicesFiltered = filterByFinantialStatus(data);
+        if (servicesFiltered && servicesFiltered.length > 0) {
+          setProgramServices({
+            list: servicesFiltered,
+            isFetching: false,
+          });
+        }
+      }).catch(() => {
+        toast({
+          position: 'top',
+          title: 'Error',
+          description: t('alert-message:error-mentorship-service'),
+          status: 'error',
+          duration: 9000,
+          isClosable: true,
+        });
       });
-    });
-  }, []);
+    } else {
+      const servicesFiltered = filterByFinantialStatus(services);
+      setProgramServices({
+        list: servicesFiltered,
+        isFetching: false,
+      });
+    }
+  }, [services]);
 
-  return programServices.length > 0 && (
+  return programServices.list?.length > 0 && (
     <Mentoring
+      allCohorts={allCohorts}
+      allSyllabus={allSyllabus}
       programServices={programServices}
       subscriptions={subscriptions}
       subscriptionData={subscriptionData}
-      flags={flags}
     />
   );
 }
 
 SupportSidebar.propTypes = {
   subscriptionData: PropTypes.shape({}),
+  services: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)),
   subscriptions: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)),
+  allCohorts: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)),
+  allSyllabus: PropTypes.arrayOf(PropTypes.objectOf(PropTypes.any)),
 };
 
 SupportSidebar.defaultProps = {
   subscriptionData: {},
   subscriptions: [],
+  services: [],
+  allCohorts: [],
+  allSyllabus: [],
 };
 
 export default memo(SupportSidebar);

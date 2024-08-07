@@ -6,19 +6,21 @@ import { useRouter } from 'next/router';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import useStyle from '../hooks/useStyle';
+import useSession from '../hooks/useSession';
 import FieldForm from './Forms/FieldForm';
 import Heading from './Heading';
 import modifyEnv from '../../../modifyEnv';
 import { setStorageItem, toCapitalize } from '../../utils';
+import { log } from '../../utils/logging';
 
-function DirectAccessModal({ storySettings, title, modalIsOpen }) {
+function DirectAccessModal({ title, modalIsOpen }) {
   const { t } = useTranslation('profile');
+  const { userSession } = useSession();
   const {
     modal,
   } = useStyle();
   const router = useRouter();
-  const locale = router?.locale || storySettings?.locale;
-  const stTranslation = storySettings?.translation[locale] || {};
+  const locale = router?.locale;
   // const technology = router?.query?.technology || 'Python';
   const BREATHECODE_HOST = modifyEnv({ queryString: 'host', env: process.env.BREATHECODE_HOST });
   const toast = useToast();
@@ -49,7 +51,10 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(allValues),
+      body: JSON.stringify({
+        ...allValues,
+        conversion_info: userSession,
+      }),
     });
 
     const data = await resp.json();
@@ -70,7 +75,7 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
   };
 
   return (
-    <Modal isOpen={modalIsOpen} size="xl" onClose={() => console.log('clicked to close')}>
+    <Modal isOpen={modalIsOpen} size="xl" onClose={() => log('clicked to close')}>
       <ModalOverlay />
       <ModalContent background={modal.background} margin="9rem 10px 0 10px">
         <ModalCloseButton />
@@ -81,7 +86,7 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
             </Heading>
           )}
           <Text fontSize="14px" px={{ base: '10px', md: '2rem' }} mt="10px" mb="2rem" textAlign="center">
-            {stTranslation?.common?.['modal-tech-description']?.replaceAll('{{title}}', title) || t('common:modal-tech-description', { title: toCapitalize(title) })}
+            {t('common:modal-tech-description', { title: toCapitalize(title) })}
           </Text>
           <Formik
             initialValues={{
@@ -109,14 +114,14 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
                   <FieldForm
                     type="text"
                     name="first_name"
-                    label={stTranslation?.common?.['first-name'] || t('common:first-name')}
+                    label={t('common:first-name')}
                     formProps={formProps}
                     setFormProps={setFormProps}
                   />
                   <FieldForm
                     type="email"
                     name="email"
-                    label={stTranslation?.common?.email || t('common:email')}
+                    label={t('common:email')}
                     formProps={formProps}
                     setFormProps={setFormProps}
                   />
@@ -124,12 +129,12 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
                     variant="default"
                     isLoading={isSubmitting}
                     onClick={() => {
-                      console.log('test');
+                      log('test');
                     }}
                     textTransform="uppercase"
                     fontSize="13px"
                   >
-                    {stTranslation?.common?.submit || t('common:submit')}
+                    {t('common:submit')}
                   </Button>
                   {/* <Box display="flex" flexDirection={{ base: 'column', sm: 'row' }} gridGap="12px" justifyContent="space-around">
                   </Box> */}
@@ -146,12 +151,10 @@ function DirectAccessModal({ storySettings, title, modalIsOpen }) {
 DirectAccessModal.propTypes = {
   modalIsOpen: PropTypes.bool,
   title: PropTypes.string,
-  storySettings: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
 };
 DirectAccessModal.defaultProps = {
   modalIsOpen: false,
   title: '',
-  storySettings: {},
 };
 
 export default DirectAccessModal;

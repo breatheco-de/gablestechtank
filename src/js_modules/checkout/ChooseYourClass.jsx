@@ -11,16 +11,23 @@ import { getQueryString, getTimeProps } from '../../utils';
 import useGoogleMaps from '../../common/hooks/useGoogleMaps';
 import useSignup from '../../common/store/actions/signupAction';
 import ChooseDate from './ChooseDate';
-import LoaderScreen from '../../common/components/LoaderScreen';
 import useStyle from '../../common/hooks/useStyle';
+import { reportDatalayer } from '../../utils/requests';
+import { CardSkeleton } from '../../common/components/Skeleton';
 
 function LoaderContent({ cohortIsLoading }) {
   const { t } = useTranslation('signup');
 
   return cohortIsLoading ? (
-    <Box display="flex" justifyContent="center" mt="4rem" mb="8rem" position="relative">
-      <LoaderScreen width="130px" height="130px" />
-    </Box>
+    <CardSkeleton
+      quantity={1}
+      display="flex"
+      gridGap="40px"
+      flexDirection="column"
+      width="100%"
+      cardWidth="100%"
+      cardHeight="120px"
+    />
   ) : (
     <AlertMessage type="info" message={t('no-date-available')} />
   );
@@ -50,6 +57,14 @@ function ChooseYourClass({
     GOOGLE_KEY,
     'places',
   );
+
+  useEffect(() => {
+    reportDatalayer({
+      dataLayer: {
+        event: 'checkout_choose_your_class',
+      },
+    });
+  }, []);
 
   useEffect(() => {
     setCohortIsLoading(true);
@@ -133,7 +148,8 @@ function ChooseYourClass({
   }, [isSecondStep, gmapStatus]);
 
   useEffect(() => {
-    if (gmapStatus.loaded && GOOGLE_KEY) {
+    const userLocation = localStorage.getItem('user-location');
+    if (gmapStatus.loaded && GOOGLE_KEY && !userLocation) {
       getNearestLocation(GOOGLE_KEY).then(({ data }) => {
         if (data) {
           setCoords({
@@ -142,13 +158,22 @@ function ChooseYourClass({
           });
         }
 
-        geocode({ location: data.location }).then((result) => {
-          setLocation({
-            country: result[0]?.address_components[6]?.long_name,
-            city: result[0]?.address_components[5]?.long_name,
+        geocode({ location: data.location }).then((results) => {
+          const loc = {};
+
+          results[0].address_components.forEach((comp) => {
+            if (comp.types.includes('locality')) loc.city = comp.long_name;
+            if (comp.types.includes('country')) {
+              loc.country = comp.long_name;
+              loc.countryShort = comp.short_name;
+            }
           });
+          localStorage.setItem('user-location', JSON.stringify(loc));
+          setLocation(loc);
         });
       });
+    } else if (userLocation) {
+      setLocation(JSON.parse(userLocation));
     }
   }, [gmapStatus]);
 
@@ -156,10 +181,12 @@ function ChooseYourClass({
     <Box
       display="flex"
       flexDirection="column"
-      background={backgroundColor}
-      gridGap={{ base: '20px', md: '20px' }}
-      padding={{ base: '56px 18px', md: '26px 70px' }}
-      borderRadius="22px"
+      gridGap="24px"
+      padding="24px 0"
+      backgroundColor={backgroundColor}
+      maxWidth="490px"
+      justifyContent="center"
+      margin="0 auto"
     >
       <Heading size="18px">{t('your-address')}</Heading>
       <Box display="flex" gridGap="18px" alignItems="center" mt="10px">

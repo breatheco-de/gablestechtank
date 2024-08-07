@@ -1,23 +1,34 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import PropTypes from 'prop-types';
 import { Box } from '@chakra-ui/react';
 import iconDic from '../../utils/iconDict.json';
 
 function Icon({
-  icon, width, height, style, color, secondColor, fill, className, props, full, text, ...rest
+  icon, width, size, height, style, color, secondColor, fill, className, props, full, text, ...rest
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
   if (typeof window === 'undefined' || !window) return '';
   const iconExists = iconDic.includes(icon);
 
   const Comp = dynamic(() => import(`./set/${iconExists ? icon : 'info'}`));
 
-  return (
+  // fix hydration error
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  return isMounted && (
     <Box as="span" id={`icon-${icon}`} className={className} {...rest}>
       <Comp
-        width={width}
-        height={height}
-        style={{ ...style, minWidth: width, height }}
+        width={size || width}
+        height={size || height}
+        style={{
+          ...style,
+          minWidth: size || width,
+          height: size || height,
+        }}
         color={color}
         secondColor={secondColor}
         fill={fill}
@@ -44,12 +55,14 @@ Icon.propTypes = {
     transition: PropTypes.string,
   }),
   text: PropTypes.string,
+  size: PropTypes.string,
 };
 Icon.defaultProps = {
   icon: '',
+  size: '',
   style: {},
-  width: '100%',
-  height: '100%',
+  width: '',
+  height: '',
   color: '',
   secondColor: '',
   fill: '',

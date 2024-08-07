@@ -23,7 +23,8 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
-          npm install --legacy-peer-deps
+          npm install -g bun
+          npm install
           npm run build-storybook
 
       - name: Deploy 🚀

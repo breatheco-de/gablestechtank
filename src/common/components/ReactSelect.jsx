@@ -129,6 +129,7 @@ const chakraComponents = {
             overflow: 'hidden',
             h: 'auto',
             minH: heights[size],
+            cursor: 'pointer',
           }}
           {...innerProps}
           data-focus={isFocused ? true : undefined}
@@ -153,7 +154,7 @@ const chakraComponents = {
       m="0.125rem"
       // react-select Fixed Options example: https://react-select.com/home#fixed-options
       variant={data.isFixed ? 'solid' : 'subtle'}
-      colorScheme={data.colorScheme || selectProps.colorScheme}
+      colorScheme={data?.colorScheme || selectProps?.colorScheme}
       size={selectProps.size}
     >
       {children}
@@ -236,7 +237,10 @@ const chakraComponents = {
           ...list,
           maxH: `${maxHeight}px`,
           overflowY: 'auto',
-          borderRadius: borderRadii[size],
+          borderTopRadius: borderRadii.sm,
+          borderBottomRadius: borderRadii[size] || borderRadii.md,
+          padding: '0px',
+          margin: '0px',
         }}
         ref={innerRef}
       >
@@ -258,7 +262,7 @@ const chakraComponents = {
     children,
     isFocused,
     isDisabled,
-    selectProps: { size },
+    selectProps: { size, itemBackgroundColorHovered }, // prop from ChakraReactSelect
   }) => {
     const { item } = useStyles();
     return (
@@ -267,12 +271,22 @@ const chakraComponents = {
         sx={{
           ...item,
           w: '100%',
+          padding: '10px',
           textAlign: 'start',
           bg: isFocused ? item._focus.bg : 'transparent',
           fontSize: size,
           ...(isDisabled && item._disabled),
         }}
         ref={innerRef}
+        cursor="pointer"
+        _selection={{
+          background: itemBackgroundColorHovered || 'gray.800',
+        }}
+        _hover={{
+          opacity: 1,
+          background: itemBackgroundColorHovered || 'gray.800',
+          fontWeight: 'bold',
+        }}
         {...innerProps}
         {...(isDisabled && { disabled: true })}
       >
@@ -314,12 +328,7 @@ const ChakraReactSelect = ({
     chakraTheme.colors.whiteAlpha[400],
   );
 
-  // Ensure that the size used is one of the options, either `sm`, `md`, or `lg`
-  let realSize = size;
   const sizeOptions = ['sm', 'md', 'lg'];
-  if (!sizeOptions.includes(size)) {
-    realSize = 'md';
-  }
 
   const select = cloneElement(children, {
     components: {
@@ -349,7 +358,7 @@ const ChakraReactSelect = ({
       };
     },
     colorScheme,
-    size: realSize,
+    size: sizeOptions?.[size] || size || 'md',
     multiValueRemoveFocusStyle,
     // isDisabled and isInvalid can be set on the component
     // or on a surrounding form control

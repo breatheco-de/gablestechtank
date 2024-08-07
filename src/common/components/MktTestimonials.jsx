@@ -1,13 +1,14 @@
 /* eslint-disable react/prop-types */
 import PropTypes from 'prop-types';
 import {
-  Box, Avatar,
+  Box, Flex,
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import GridContainer from './GridContainer';
+import Image from 'next/image';
 import Heading from './Heading';
 import Text from './Text';
+import DraggableContainer from './DraggableContainer';
 import useStyle from '../hooks/useStyle';
 import StarRating from './StarRating';
 import { lengthOfString } from '../../utils';
@@ -15,7 +16,7 @@ import axios from '../../axios';
 import modifyEnv from '../../../modifyEnv';
 
 function TestimonialBox({ picture, name, rating, description }) {
-  const { fontColor2, backgroundColor } = useStyle();
+  const { fontColor2, backgroundColor, hexColor } = useStyle();
   const limit = 160;
   const descriptionLength = lengthOfString(description);
   const truncatedDescription = descriptionLength > limit ? `${description?.substring(0, limit)}...` : description;
@@ -23,12 +24,19 @@ function TestimonialBox({ picture, name, rating, description }) {
   return (
     <Box
       width="250px"
+      height={{ md: '270px', base: '320px' }}
+      display="flex"
+      justifyContent="space-between"
+      flexDirection="column"
       background={backgroundColor}
       borderRadius="12px"
       padding="15px"
       textAlign="center"
+      border="1px solid"
+      borderColor={hexColor.borderColor}
+      flexShrink="0"
     >
-      <Avatar width="65px" height="65px" name={name} src={picture} />
+      <Image name={name} alt={`${name} picture`} src={picture} width={65} height={65} style={{ borderRadius: '50%', margin: '0 auto' }} />
       <Text marginTop="15px" lineHeight="16px" fontWeight="900" size="md">
         {name}
       </Text>
@@ -63,52 +71,50 @@ function MktTestimonials({
   const router = useRouter();
   const defaultEndpoint = `${BREATHECODE_HOST}/v1/feedback/review?lang=${router?.locale}`;
 
-  useEffect(() => {
-    if (typeof endpoint === 'string' && endpoint?.length > 6) {
-      axios.get(endpoint || defaultEndpoint)
-        .then((response) => {
-          const data = response?.data;
+  const getTestimonials = async () => {
+    try {
+      const response = await axios.get(endpoint || defaultEndpoint);
 
-          if (typeof data === 'string') {
-            setTestimonialsData([]);
-          } else {
-            setTestimonialsData(data);
-          }
-        });
+      const data = response?.data;
+
+      if (typeof data === 'string') {
+        setTestimonialsData([]);
+      } else {
+        setTestimonialsData(data);
+      }
+    } catch (e) {
+      console.log(e);
     }
+  };
+
+  useEffect(() => {
+    getTestimonials();
   }, []);
 
   const testimonialsArray = (testimonialsData?.length > 0 && testimonialsData) || (testimonials?.length > 0 && testimonials);
 
   return testimonialsArray && (
-    <GridContainer
-      gridTemplateColumns="repeat(10, 1fr)"
-      px="10px"
+    <Flex
+      flexDirection="column"
+      maxWidth="1280px"
+      py="20px"
       id={id}
+      width="100%"
       {...rest}
     >
-      <Box
-        display={{ base: 'block', md: 'grid' }}
-        gridColumn="2 / span 8"
-        flexDirection="column"
-        px="10px"
-        padding="20px 0"
-        textAlign="center"
-        width="100%"
-        {...rest}
-      >
-        {title && (
-          <Heading as="h2" size="sm" marginBottom="20px">
-            {title}
-          </Heading>
-        )}
+      {title && (
+        <Heading textAlign="center" as="h2" size="sm" marginBottom="20px">
+          {title}
+        </Heading>
+      )}
+      <DraggableContainer>
         <Box
           gridGap="20px"
           flexDirection="row"
           marginBottom="15px"
           display="flex"
-          overflow="auto"
-          justifyContent={{ base: 'inherit', md: 'center' }}
+          justifyContent={{ base: 'inherit', md: 'space-between' }}
+          px={{ base: '10px', md: '2rem' }}
         >
           {testimonialsArray && testimonialsArray.map((testimonial) => (
             <TestimonialBox
@@ -120,8 +126,8 @@ function MktTestimonials({
             />
           ))}
         </Box>
-      </Box>
-    </GridContainer>
+      </DraggableContainer>
+    </Flex>
   );
 }
 

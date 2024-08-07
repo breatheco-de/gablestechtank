@@ -3,20 +3,19 @@
 /* eslint-disable react/prop-types */
 import PropTypes from 'prop-types';
 import {
-  Box, useColorModeValue, Text, Button,
+  Box, useColorModeValue, Text, Flex,
 } from '@chakra-ui/react';
-import { useRouter } from 'next/router';
 import { PrismicRichText } from '@prismicio/react';
 import Image from 'next/image';
 import { MotionBox } from '../../common/components/Animated';
 import Heading from '../../common/components/Heading';
 import Icon from '../../common/components/Icon';
-import GridContainer from '../../common/components/GridContainer';
+import Button from '../../common/components/Button';
+import PrismicTextComponent from '../../common/components/PrismicTextComponent';
 
 function IntroductionSection({
-  data, slice, fitContent, ...rest
+  data, slice, fitContent, fontFamily, ...rest
 }) {
-  const router = useRouter();
   const colors = useColorModeValue('#000', '#fff');
 
   const isLeftBigger = slice?.primary?.two_column_size === 'Left is bigger';
@@ -45,39 +44,37 @@ function IntroductionSection({
   };
 
   const getLeftColumnSize = () => {
-    if (isLeftBigger) return '2 / span 5';
-    if (isRightBigger) return '2 / span 3';
-    if (bothAreEqual) return '2 / span 4';
-    return '2 / span 5';
+    if (isLeftBigger) return 0.7;
+    if (isRightBigger) return 0.3;
+    if (bothAreEqual) return 0.5;
+    return 0.7;
   };
 
   const getRightColumnSize = () => {
-    if (isLeftBigger) return '7 / span 3';
-    if (isRightBigger) return '5 / span 5';
-    if (bothAreEqual) return '6 / span 4';
-    return '7 / span 3';
+    if (isLeftBigger) return 0.3;
+    if (isRightBigger) return 0.7;
+    if (bothAreEqual) return 0.5;
+    return 0.3;
   };
 
   return (
-    <GridContainer
-      gridTemplateColumns="repeat(10, 1fr)"
-      px="10px"
+    <Flex
+      flexDirection={{ base: 'column', md: 'row' }}
+      px={{ base: '10px', md: '2rem' }}
       id={slice?.primary?.id_key || ''}
       {...rest}
     >
-      <Box display={{ base: 'block', md: 'grid' }} gridColumn={fitContent ? '1 / span 5' : getLeftColumnSize()}>
-        <Heading as="span" size="xl" fontWeight="700">
+      <Box display={{ base: 'block', md: 'grid' }} flex={getLeftColumnSize()}>
+        <Heading fontFamily={fontFamily} as="span" size="xl" fontWeight="700">
           {slice?.primary?.title ? (
             <>
-              <PrismicRichText
+              <PrismicTextComponent
                 field={slice?.primary?.title}
-                components={{
-                  heading1: ({ children }) => (
-                    <Box as="h1" fontSize="48px" fontWeight="700" display="initial">
-                      {children}
-                    </Box>
-                  ),
-                }}
+                display="initial"
+                size="48px"
+                fontWeight={700}
+                lineHeight="inherit"
+                fontFamily={fontFamily}
               />
               {slice?.primary?.highlight && (
                 <PrismicRichText
@@ -130,7 +127,7 @@ function IntroductionSection({
 
         {slice?.primary?.description.length > 0 ? (
           <Text as="div" fontSize="21px" fontWeight={700} pt="16px">
-            <PrismicRichText field={slice?.primary?.description} />
+            <PrismicTextComponent field={slice?.primary?.description} fontSize="21px" lineHeight="inherit" />
           </Text>
         ) : data?.description && (
           <Text fontSize="21px" fontWeight={700} pt="16px">
@@ -170,19 +167,20 @@ function IntroductionSection({
             variant="default"
             width="fit-content"
             minWidth="200px"
+            textAlign="center"
             height="52px"
+            to={slice?.primary?.button_link?.url || slice?.primary?.button_link || '#recommended-courses'}
             fontSize="18px"
             m="25px 0"
             letterSpacing="0.05em"
             textTransform="uppercase"
-            onClick={() => router?.push(slice?.primary?.button_link?.url || '#pricing')}
           >
             <PrismicRichText field={slice?.primary?.buttontext} />
           </Button>
         ) : (
           <>
             {data?.callToAction?.title && (
-              <Button variant="default" width="fit-content" minWidth="200px" height="52px" fontSize="18px" m="25px 0" letterSpacing="0.05em" textTransform="uppercase" onClick={() => router.push(data?.callToAction.href)}>
+              <Button variant="default" width="fit-content" minWidth="200px" height="52px" fontSize="18px" m="25px 0" letterSpacing="0.05em" textTransform="uppercase" to={data?.callToAction.href || '#recommended-courses'}>
                 {data?.callToAction.title}
               </Button>
             )}
@@ -191,12 +189,12 @@ function IntroductionSection({
       </Box>
 
       {/* ----------------------- Image ----------------------- */}
-      <Box display={{ base: 'block', md: 'grid' }} gridColumn={fitContent ? '7 / span 4' : getRightColumnSize()} alignContent="center">
+      <Box display={{ base: 'block', md: 'grid' }} flex={getRightColumnSize()}>
         {slice?.primary?.image?.url ? (
-          <Box display="flex" height="fit-content" justifyContent="center">
+          <Box display="flex" height="fit-content" justifyContent="end">
             <Image
               src={slice.primary.image.url}
-              alt={slice.primary.image.alt}
+              alt={slice.primary.image.alt || 'Introduction avatars'}
               width={slice.primary.image.dimensions?.width}
               height={slice.primary.image.dimensions?.height}
               style={{ borderRadius: '7px' }}
@@ -218,18 +216,20 @@ function IntroductionSection({
           </video>
         )}
       </Box>
-    </GridContainer>
+    </Flex>
   );
 }
 
 IntroductionSection.propTypes = {
   data: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
   slice: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
+  fontFamily: PropTypes.string,
 };
 
 IntroductionSection.defaultProps = {
   slice: {},
   data: {},
+  fontFamily: 'Lato',
 };
 
 export default IntroductionSection;

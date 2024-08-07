@@ -1,7 +1,8 @@
 import { differenceInDays } from 'date-fns';
 import bc from '../services/breathecode';
+import { reportDatalayer } from '../../utils/requests';
 
-export const updateAssignment = ({
+export const updateAssignment = async ({
   t, task, closeSettings, toast, githubUrl, contextState, setContextState, taskStatus,
 }) => {
   // Task case
@@ -13,7 +14,8 @@ export const updateAssignment = ({
       task_status: toggleStatus,
     };
 
-    bc.todo({}).update(taskToUpdate).then(() => {
+    try {
+      await bc.todo({}).update(taskToUpdate);
       const keyIndex = contextState.taskTodo.findIndex((x) => x.id === task.id);
       setContextState({
         ...contextState,
@@ -32,7 +34,8 @@ export const updateAssignment = ({
       });
 
       closeSettings();
-    }).catch(() => {
+    } catch (error) {
+      console.log(error);
       toast({
         position: 'top',
         title: t('alert-message:assignment-update-error'),
@@ -41,7 +44,7 @@ export const updateAssignment = ({
         isClosable: true,
       });
       closeSettings();
-    });
+    }
   } else {
     // Project case
     const getProjectUrl = () => {
@@ -60,11 +63,13 @@ export const updateAssignment = ({
       task_status: taskStatus || toggleStatus,
       github_url: projectUrl,
       revision_status: 'PENDING',
+      delivered_at: new Date(),
     };
 
-    bc.todo({}).update(taskToUpdate).then(({ data }) => {
+    try {
+      const response = await bc.todo({}).update(taskToUpdate);
       // verify if form is equal to the response
-      if (data.github_url === projectUrl) {
+      if (response.data.github_url === projectUrl) {
         const keyIndex = contextState.taskTodo.findIndex((x) => x.id === task.id);
         setContextState({
           ...contextState,
@@ -73,6 +78,17 @@ export const updateAssignment = ({
             taskToUpdate, // key item (updated)
             ...contextState.taskTodo.slice(keyIndex + 1), // after keyIndex (exclusive)
           ],
+        });
+        reportDatalayer({
+          dataLayer: {
+            event: 'assignment_status_updated',
+            task_status: taskStatus,
+            task_id: task.id,
+            task_title: task.title,
+            task_associated_slug: task.associated_slug,
+            task_type: task.task_type,
+            task_revision_status: task.revision_status,
+          },
         });
         toast({
           position: 'top',
@@ -86,7 +102,8 @@ export const updateAssignment = ({
         });
         closeSettings();
       }
-    }).catch(() => {
+    } catch (error) {
+      console.log(error);
       toast({
         position: 'top',
         title: t('alert-message:delivery-error'),
@@ -95,7 +112,7 @@ export const updateAssignment = ({
         isClosable: true,
       });
       closeSettings();
-    });
+    }
   }
 };
 

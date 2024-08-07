@@ -3,8 +3,11 @@
   "graduated-as": "You have graduated succesfully as a:",
   "see-my-certificate": "See my certificate",
   "what-do-you-need-to-graduate": "What do you need to graduate?",
+  "review-final-projects": "Review final projects",
   "almost-there": "Almost there! You are on the last sprint before graduation, please make sure to complete the following activities:",
+  "almost-there-teacher": "We are almost there! Make sure students submit their projects ASAP. Click on the following button to review them.",
   "edit-final-project": "Edit final project info",
+  "list-projects": "List projects",
   "add-final-project": "Add final project info",
   "completed": "Completed",
   "complete-required-projects": "Complete required projects",
@@ -13,8 +16,8 @@
     "subtitle": "Congratulations on reaching this phase of the program.",
     "description": "We are still learning a lot but this last project will become something to showcase to friends and potential employers.",
     "bullets": [
-      "<a class='link' href='#' target='blank' rel='noopener noreferrer'>Why build a final project?</a>",
-      "<a class='link' href='#' target='blank' rel='noopener noreferrer'>How to pick your final project topic?</a>"
+      "<a class='link' href='https://4geeks.com/docs/knowledge-base-4geeks/why-build-a-final-project' target='blank' rel='noopener noreferrer'>Why build a final project?</a>",
+      "<a class='link' href='https://4geeks.com/docs/knowledge-base-4geeks/pick-your-capstone-project' target='blank' rel='noopener noreferrer'>How to pick your final project topic?</a>"
     ],
     "button": "Upload final project"
   },
@@ -32,6 +35,7 @@
     "add-participants": "Add participants",
     "participants-hint": "Each student taking place in this project.",
     "button":"Submit final project",
+    "no-students": "No other students have been found on this cohort, you cannot add any members to this project",
     "confirmation": {
       "title": "Are you sure?",
       "text": "If you remove yourself from this project, you won't have access to it, and your teammates will have to add you again to regain access.",

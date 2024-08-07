@@ -8,8 +8,22 @@
   "progressText": "Progreso en el programa",
   "whiteLabeledText": "Este curso es traído a ti gracias a nuestra alianza con esta universidad.",
   "free-trial-msg": "Actualmente se encuentra en una prueba gratuita, algunas funciones pueden ser limitadas. ¡<a class='black-link' href='{{link}}'>Actualiza tu plan</a> para tener acceso ilimitado!",
-  "intro-video-title": "Bienvenido a la introducción de codificación",
+  "intro-video-title": "Bienvenido!",
+  "already-have-this-cohort": "Ya perteneces a esta cohorte",
+  "join-cohort-page": {
+    "seo-title": "Únete a {{cohortTitle}}",
+    "cta-description": "Tu plan actual no incluye acceso a esta cohorte, por favor actualiza para acceder al contenido.",
+    "cta-cohort-not-found": "Esta cohorte no existe o no tienes acceso para unirte.",
+    "cta-button": "Revisar plan",
+    "join-next-cohort":"Únete a la cohorte",
+    "start-course":"Empezar este curso",
+    "join-more":"Únete a más de 100 personas que toman este curso ahora mismo",
+    "preview-description": "Estás revisando esta cohorte en \"modo de vista previa\". Para comenzar a aprender e interactuar con el material, únete a la cohorte."
+  },
   "modules": {
+    "read": "Leer",
+    "start": "Iniciar",
+    "answer": "Responder",
     "target-blank-title": "Abrir en nueva ventana",
     "target-blank-msg": "\"{{title}}\" abrirá la siguiente URL en una nueva ventana",
     "search-not-found": "No se encontraron coincidencias para esta búsqueda",
@@ -28,9 +42,14 @@
     "description": "Tu clase de hoy es ",
     "buttonText": "Comenzar módulo de hoy"
   },
+  "saasCohortcallToAction": {
+    "title": "Último módulo trabajado",
+    "buttonText": "Retoma en donde lo dejaste"
+  },
   "cohortSideBar": {
     "title": "Acerca de tu cohorte",
     "cohort": "Tu Cohorte",
+    "about-cohort": "Acerca de la cohorte",
     "last-date": "Última fecha:",
     "start-date": "Fecha de inicio:",
     "mainTeacher": "Profesor principal",
@@ -54,13 +73,14 @@
     "no-mentor-link": "No hay enlace para crear sesión con este mentor",
     "search-mentor": "Buscar mentor por nombre",
     "start-mentorship": "Para comenzar, seleccione un tipo de tutoría",
+    "mentoring-label": "Mentoría",
     "mentoring": "Programe una sesión de tutoría 1-1.",
     "select-type": "Seleccione un tipo de tutoría",
     "mentoring-available": "Tutorías disponibles",
     "no-mentoring-available": "No tienes tutorías disponibles.",
     "create-session-text": "Agendar ahora",
     "learn-more": "Aprender mas.",
-    "learn-more-link": "https://4geeks.com/es/mentorships",
+    "learn-more-link": "https://4geeks.com/es/docs/knowledge-base-4geeks/sesiones-de-tutoria",
     "get-more-mentorships": "Consigue más mentorías",
     "schedule-button": "Programar una sesión de tutoría",
     "mentors-available": "+{{count}} Mentores disponibles",
@@ -91,7 +111,8 @@
     "how-to-deliver": "Cómo entregar proyectos",
     "how-to-deliver-text": "Envíe una URL de Github que apunte a su proyecto como un repositorio de Github. <a class='link' target='blank' href='{{link}}'>Cómo entregar proyectos</a>",
     "handler-text": "Entregar proyecto",
-    "mandatory-message": "Tienes {{count}} proyectos obligatorios para completar antes de graduarte",
+    "mandatory-message": "Tienes {{count}} proyectos obligatorios para completar antes de graduarte.",
+    "see-mandatory-projects": " Ver proyectos obligatorios",
     "file-upload": "Sube uno o más archivos con un máximo de 10 MB en los siguientes formatos: ",
     "error-file-format": "El formato de archivo es incorrecto.",
     "error-file-size": "El tamaño del archivo debe ser inferior a 10mb.",
@@ -100,11 +121,16 @@
     "url-is-required": "La URL es obligatoria",
     "no-delivery-needed": "Para entregar este proyecto no necesitas subir ningún archivo o especificar nada, simplemente puedes apretar el botón \"Entregar proyecto\" que se encuentra debajo y lo consideraremos como entregado."
   },
+  "mandatoryProjects": {
+    "title": "Proyectos obligatorios pendientes",
+    "description": "Tienes asignaturas obligatorias pendientes, tienes que terminarlas para poder completar el curso."
+  },
   "modalInfo": {
     "title": "Estado de revisión",
     "still-reviewing": "Tu profesor todavía está revisando tu entrega, te dará su opinión una vez que esté lista.",
+    "reviewed": "Tu profesor ha revisado tu entrega y ha proporcionado retroalimentación",
     "approved": "¡Tu profesor ha aprobado con éxito tu proyecto!",
-    "files-sended-to-teacher": "",
+    "files-sended": "Lista de archivos enviados:",
     "rejected": {
       "title": "Tu profesor ha rechazado tu proyecto",
       "teacher-feedback": "Comentario del profesor:",
@@ -120,10 +146,11 @@
       "cancel": "Cancelar"
     }
   },
-  "warningModal" : {
+  "warningModal": {
     "title": "Sincronizar con github",
     "sub-title": "Tu cuenta de Github no está conectada",
-    "text": "Si eres un alumno activo de 4Geeks Academy, conectando tu cuenta de Github podrás acceder a horas ilimitadas de Codespaces",
+    "text": "4Geeks está perfectamente integrado con Github para una experiencia de aprendizaje óptima, recomendamos encarecidamente conectar su cuenta de Github.",
+    "text2": "Github aloja el 90% del código del mundo y se ha convertido en uno de los activos más importantes para los profesionales de la tecnología. <a href='https://4geeks.com/es/docs/knowledge-base-4geeks/evita-que-se-borren-tus-proyectos' class='link' >Haga clic aquí</a> para aprender más sobre por qué y cómo usamos sus credenciales de Github.",
     "connect": "CONECTAR CON GITHUB",
     "skip": "Saltar por ahora"
   },
@@ -162,5 +189,9 @@
     "assignments": "Tareas",
     "teacher-tutorial": "Tutorial de profesor",
     "no-instructions": ">:warning: No se encontró instrucción disponible para este módulo"
+  },
+  "welcome-modal": {
+    "title": "Bienvenido a 4Geeks!",
+    "description": "Mira este breve video que explica cómo aprovechar al máximo 4Geeks y mejorar tu experiencia de aprendizaje"
   }
 }

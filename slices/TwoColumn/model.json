@@ -13,57 +13,35 @@
       "primary": {
         "id_key": {
           "type": "Text",
-          "config": {
-            "label": "ID Key",
-            "placeholder": ""
-          }
+          "config": { "label": "ID Key", "placeholder": "" }
         },
         "information_size": {
           "type": "Select",
           "config": {
             "label": "Information Size",
             "placeholder": "Proportion of sizes",
-            "options": [
-              "Small",
-              "Medium",
-              "Large"
-            ]
+            "options": ["Small", "Medium", "Large"]
           }
         },
         "text_background_color": {
           "type": "Color",
-          "config": {
-            "label": "Text Background Color",
-            "placeholder": ""
-          }
+          "config": { "label": "Text Background Color", "placeholder": "" }
         },
         "title": {
           "type": "Text",
-          "config": {
-            "label": "Title",
-            "placeholder": ""
-          }
+          "config": { "label": "Title", "placeholder": "" }
         },
         "title_color": {
           "type": "Color",
-          "config": {
-            "label": "Title Color",
-            "placeholder": ""
-          }
+          "config": { "label": "Title Color", "placeholder": "" }
         },
         "subtitle": {
           "type": "Text",
-          "config": {
-            "label": "Subtitle",
-            "placeholder": ""
-          }
+          "config": { "label": "Subtitle", "placeholder": "" }
         },
         "subtitle_color": {
           "type": "Color",
-          "config": {
-            "label": "Subtitle Color",
-            "placeholder": ""
-          }
+          "config": { "label": "Subtitle Color", "placeholder": "" }
         },
         "description": {
           "type": "StructuredText",
@@ -76,25 +54,19 @@
         },
         "description_color": {
           "type": "Color",
-          "config": {
-            "label": "Description Color",
-            "placeholder": ""
-          }
+          "config": { "label": "Description Color", "placeholder": "" }
         },
         "image": {
           "type": "Image",
-          "config": {
-            "label": "image",
-            "constraint": {},
-            "thumbnails": []
-          }
+          "config": { "label": "image", "constraint": {}, "thumbnails": [] }
         },
         "button_label": {
           "type": "Text",
-          "config": {
-            "label": "Button label",
-            "placeholder": ""
-          }
+          "config": { "label": "Button label", "placeholder": "" }
+        },
+        "button_url": {
+          "type": "Text",
+          "config": { "label": "Button url", "placeholder": "" }
         },
         "link_button": {
           "type": "Boolean",
@@ -105,23 +77,20 @@
             "default_value": false
           }
         },
-        "button_url": {
-          "type": "Link",
-          "config": {
-            "label": "Button url",
-            "placeholder": "",
-            "select": null
-          }
+        "font_color": {
+          "type": "Color",
+          "config": { "label": "Font color", "placeholder": "" }
+        },
+        "font_color_in_darkmode": {
+          "type": "Color",
+          "config": { "label": "Font color in darkmode", "placeholder": "" }
         },
         "button_color": {
           "type": "Select",
           "config": {
             "label": "Button Color",
             "placeholder": "",
-            "options": [
-              "Blue",
-              "White"
-            ]
+            "options": ["Blue", "White"]
           }
         },
         "background_color": {
@@ -131,15 +100,16 @@
             "placeholder": "Example: #FFFFFF"
           }
         },
+        "background_in_dark_mode": {
+          "type": "Color",
+          "config": { "label": "Background in dark mode", "placeholder": "" }
+        },
         "image_position": {
           "type": "Select",
           "config": {
             "label": "Image position",
             "placeholder": "",
-            "options": [
-              "left",
-              "right"
-            ]
+            "options": ["left", "right"]
           }
         },
         "margin": {
@@ -151,9 +121,15 @@
         },
         "grid_gap": {
           "type": "Text",
+          "config": { "label": "Grid gap", "placeholder": "" }
+        },
+        "fontFamily": {
+          "type": "Select",
           "config": {
-            "label": "Grid gap",
-            "placeholder": ""
+            "label": "Font Family",
+            "placeholder": "",
+            "options": ["Lato", "Space Grotesk Variable"],
+            "default_value": "Lato"
           }
         }
       },

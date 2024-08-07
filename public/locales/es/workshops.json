@@ -1,11 +1,19 @@
 {
   "no-event-found": "No hay eventos disponibles con esta URL 😕",
   "host-label-text": "Anfitrión para este evento",
+  "workshop-asset-ended": "El siguiente proyecto fue realizado durante el workshop",
+  "workshop-asset-upcoming": "Durante el workshop completaremos el siguiente proyecto",
+  "documents": "Prepárate para el workshop",
   "suggest-join-event": "Haga clic a continuación para confirmar su participación y guardar su lugar para este evento",
+  "suggest-join-in-person-event": "Este es un evento presencial en vivo, puedes reservar tu lugar aquí",
   "reserv-button-text": "Reservar lugar",
   "duration-hours": "{{hours}}hr de duración",
   "greetings": "Hola {{name}} 👋",
-  "switch-user-connector": "¿No eres {{name}}?",
+  "starts-in": "El evento empieza en:",
+  "in-person": "Evento en persona",
+  "in-person-confirm": "Este es un evento presencial que se llevará a cabo en {{address}}. ¿Aún quieres confirmar tu asistencia?",
+  "confirm-attendance": "Si, si asistiré",
+  "deny-attendance" : "No, no asistiré",
   "form": {
     "title": "Únete a este evento",
     "description": "Inicia sesión para unirte a otros programadores en vivo resolviendo desafíos técnicos o profesionales.",
@@ -14,6 +22,7 @@
     "ready-to-join-description-logged": "Este evento está sucediendo ahora mismo. Haga clic a continuación para unirse al evento.",
     "joined-title": "Este evento comenzará pronto",
     "joined-description": "Ya te registraste para este evento. Podrás unirte una vez que comience.",
+    "joined-description-in-person": "Ya te registraste para este evento ¡Te estaremos esperando!",
     "finished-title": "Este evento ha finalizado",
     "finished-description": "¡Sigue buscando nuevas experiencias de aprendizaje y mantén viva tu pasión por el conocimiento!"
   },
@@ -21,10 +30,23 @@
   "join-workshop": "Regístrarse al taller",
   "join": "Unirse ahora",
   "event-finished": "Evento finalizado",
+  "checkin-modal": {
+    "title": "Gracias por inscribirte en nuestro workshop, ahora es el momento de prepararte.",
+    "sub-title": "Aprovecha al máximo este workshop",
+    "items": [
+      "El anfitrión ya está respondiendo preguntas en nuestra comunidad de WhatsApp",
+      "Chatea con otros asistentes al workshop",
+      "Recibe actualizaciones sobre este y futuros workshops.",
+      "Practica de forma interactiva gracias a Learnpack y nuestro mentor de IA"
+    ],
+    "join-conversation": "Unirse a la conversación",
+    "conversation-link": "https://chat.whatsapp.com/K39ELB5TIK63r4INTBd7SG"
+  },
   "no-consumables": {
     "description": "Te has quedado sin talleres, pero no te preocupes, puedes conseguir más con unos pocos clics.",
     "link-text": "Aprende más.",
     "link": "",
-    "get-more-workshops": "Get more workshops"
-  }
+    "get-more-workshops": "Obten más workshops"
+  },
+  "back-to-workshops": "Regresar"
 }

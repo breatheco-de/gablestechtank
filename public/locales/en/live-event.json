@@ -2,6 +2,8 @@
     "title": "Live clases, coding sessions, workshops and hangouts every few hours.",
     "learn-more": "Learn more",
     "live-class": "Upcoming Live Class",
+    "start-class": "Start Live Class",
+    "join-class": "Join Live Class",
     "no-live-class": "No live events scheduled today",
     "started": "Started {{time}} ago",
     "ended": "Ended {{time}} ago",
@@ -24,5 +26,17 @@
     "workshop": "Workshop",
     "will-start-soon": "Will start soon",
     "time-duration": "{{time}} duration",
-    "join-event": "Join Event"
+    "join-event": "Join now",
+    "join-workshop": "Join workshop",
+    "book-place": "Book your place",
+    "filters": {
+        "language": "Language",
+        "event-type": "Event Type"
+    },
+    "minute_one": "{{count}} minute",
+    "minute_other": "{{count}} minutes",
+    "day_one": "{{count}} day",
+    "day_other": "{{count}} days",
+    "students-worked-here": "+{{count}} students worked in this file",
+    "register-workshop": "See more"
 }

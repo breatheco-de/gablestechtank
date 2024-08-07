@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/router';
 import useTranslation from 'next-translate/useTranslation';
-import { usePersistent } from '../../hooks/usePersistent';
+import useCohortHandler from '../../hooks/useCohortHandler';
 import Heading from '../Heading';
 import Icon from '../Icon';
 import Progress from '../ProgressBar/Progress';
@@ -15,26 +15,23 @@ import FinalProjectForm from './Form';
 import useStyle from '../../hooks/useStyle';
 import useFinalProjectProps from '../../store/actions/finalProjectAction';
 
-function FinalProject({ storyConfig, studentAndTeachers, tasks }) {
+function FinalProject({ storyConfig, studentAndTeachers, tasks, isStudent }) {
   const { t } = useTranslation('final-project');
   const [isOpen, setIsOpen] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [finalProject, setFinalProjects] = useState([]);
-  const [cohortSession] = usePersistent('cohortSession', {});
+  const { state } = useCohortHandler();
+  const { cohortSession } = state;
+
   const router = useRouter();
-  const { modal } = useStyle();
+  const { modal, hexColor } = useStyle();
   const { finalProjectData, setFinalProjectData } = useFinalProjectProps();
   const storyConfigExists = Object.keys(storyConfig).length > 0;
-  const finalProjectTranslation = storyConfig?.translation?.[storyConfig?.locale]['final-project'];
   const repoUrl = finalProjectData?.repo_url || finalProject?.currentProject?.repo_url;
   const cohortSlug = router?.query?.cohortSlug;
 
   const openModal = () => {
-    if (repoUrl) {
-      setOpenForm(true);
-    } else {
-      setIsOpen(true);
-    }
+    setOpenForm(true);
   };
   const closeModal = () => setIsOpen(false);
 
@@ -76,6 +73,8 @@ function FinalProject({ storyConfig, studentAndTeachers, tasks }) {
               currentProject,
               allProjects: res?.data,
             });
+          } else {
+            setIsOpen(true);
           }
         });
     }
@@ -101,10 +100,10 @@ function FinalProject({ storyConfig, studentAndTeachers, tasks }) {
             <Heading
               size="24px"
             >
-              {finalProjectTranslation?.congratulations || t('congratulations')}
+              {t('congratulations')}
             </Heading>
             <Text size="l">
-              {finalProjectTranslation?.['graduated-as'] || t('graduated-as')}
+              {t('graduated-as')}
             </Text>
             <Heading
               size="22px"
@@ -116,7 +115,7 @@ function FinalProject({ storyConfig, studentAndTeachers, tasks }) {
           </Box>
           <Box mt="10px" padding="12px 30px">
             <Link href="/profile/certificates" target="_blank" rel="noopener noreferrer" fontSize="15px" variant="buttonDefault" background="yellow.light" color="yellow.default" _hover={{ opacity: 0.9 }}>
-              {finalProjectTranslation?.['see-my-certificate'] || t('see-my-certificate')}
+              {t('see-my-certificate')}
             </Link>
           </Box>
         </Box>
@@ -125,49 +124,72 @@ function FinalProject({ storyConfig, studentAndTeachers, tasks }) {
           <Heading
             size="18px"
           >
-            {finalProjectTranslation?.['what-do-you-need-to-graduate'] || t('what-do-you-need-to-graduate')}
+            {isStudent ? t('what-do-you-need-to-graduate') : t('review-final-projects')}
           </Heading>
           <Text size="l" mt="10px">
-            {finalProjectTranslation?.['almost-there'] || t('almost-there')}
+            {isStudent ? t('almost-there') : t('almost-there-teacher')}
           </Text>
           <Box display="flex" flexDirection="column" gridGap="20px" padding="0 24px" mt="2rem">
-            <Button
-              display="flex"
-              height="45px"
-              gridGap="10px"
-              m="0 auto"
-              width="100%"
-              onClick={openModal}
-              variant="unstyled"
-              background="blue.light"
-              color="blue.default"
-              padding="0 27px"
-            >
-              <Icon icon={repoUrl ? 'underlinedPencil' : 'add'} width="25px" height="25px" />
-              {repoUrl
-                ? finalProjectTranslation?.['edit-final-project'] || t('edit-final-project')
-                : finalProjectTranslation?.['add-final-project'] || t('add-final-project')}
-            </Button>
-            <Box display="flex" flexDirection="column" gridGap="10px" borderColor="white" border="1px solid" padding="10px 22px" borderRadius="4px">
-              <Text size="l" fontWeight={700}>
-                {progressPercent === 100
-                  ? finalProjectTranslation?.completed || t('completed')
-                  : finalProjectTranslation?.['complete-required-projects'] || t('complete-required-projects')}
-              </Text>
-              <Progress
-                percents={progressPercent || 0}
-                duration={0.4}
-                widthSize={218}
-                progressColor={progressPercent === 100 ? 'green.400' : ''}
-                barHeight="5px"
-                borderRadius="20px"
-              />
-            </Box>
+            {isStudent ? (
+              <>
+                <Button
+                  display="flex"
+                  height="45px"
+                  gridGap="10px"
+                  m="0 auto"
+                  width="100%"
+                  onClick={openModal}
+                  variant="unstyled"
+                  background="blue.light"
+                  color="blue.default"
+                  padding="0 27px"
+                  whiteSpace="normal"
+                >
+                  <Icon icon={repoUrl ? 'underlinedPencil' : 'add'} width="25px" height="25px" />
+                  {repoUrl
+                    ? t('edit-final-project')
+                    : t('add-final-project')}
+                </Button>
+                <Box display="flex" flexDirection="column" gridGap="10px" borderColor="white" border="1px solid" padding="10px 22px" borderRadius="4px">
+                  <Text size="l" fontWeight={700}>
+                    {progressPercent === 100
+                      ? t('completed')
+                      : t('complete-required-projects')}
+                  </Text>
+                  <Progress
+                    percents={progressPercent || 0}
+                    duration={0.4}
+                    widthSize={218}
+                    progressColor={progressPercent === 100 ? 'green.400' : ''}
+                    barHeight="5px"
+                    borderRadius="20px"
+                  />
+                </Box>
+              </>
+            ) : (
+              <Button
+                display="flex"
+                height="45px"
+                gridGap="10px"
+                m="0 auto"
+                width="100%"
+                onClick={() => {
+                  window.open(`/cohort/${cohortSlug}/assignments?academy=${cohortSession?.academy?.id}&view=2`, '_blank');
+                }}
+                variant="unstyled"
+                background={hexColor.blueDefault}
+                color="white"
+                padding="0 27px"
+                whiteSpace="normal"
+              >
+                {t('list-projects')}
+                <Icon icon="longArrowRight" color="white" width="25px" height="25px" />
+              </Button>
+            )}
           </Box>
         </Box>
       )}
       <FinalProjectModal
-        storyConfig={storyConfig}
         isOpen={isOpen}
         closeModal={closeModal}
         studentsData={students}
@@ -197,12 +219,14 @@ FinalProject.propTypes = {
   studentAndTeachers: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   tasks: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.any])),
   storyConfig: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.any])),
+  isStudent: PropTypes.bool,
 };
 
 FinalProject.defaultProps = {
   studentAndTeachers: [],
   tasks: [],
   storyConfig: {},
+  isStudent: true,
 };
 
 export default FinalProject;
